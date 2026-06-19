@@ -1,0 +1,48 @@
+name: Daily GoalChronicles Poster Bot
+
+on:
+  schedule:
+    # Runs at 18:15 UTC every day, which is 12:00 AM NPT (Nepal Time: UTC+5:45)
+    - cron: '15 18 * * *'
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+
+jobs:
+  build-and-post:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 👈 Required so the bot can save the database file back to github!
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          # We need a custom token if we want the action to commit back to the repo, 
+          # but the default GITHUB_TOKEN usually works if permissions are set correctly.
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+
+      - name: Run Poster Bot
+        env:
+          FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+        run: |
+          node src/index.js
+
+      - name: Commit Database Updates
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add published_matches.json
+          git commit -m "chore: update published matches database [skip ci]" || echo "No changes to commit"
+          git push
