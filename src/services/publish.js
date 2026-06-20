@@ -16,7 +16,7 @@ export async function publishToSocialMedia(imagePath, caption) {
 
     try {
         console.log("🚀 Publishing to Facebook...");
-        
+
         // 1. Upload to Facebook Page
         const fbUrl = `https://graph.facebook.com/v20.0/${FB_PAGE_ID}/photos`;
         const form = new FormData();
@@ -27,7 +27,7 @@ export async function publishToSocialMedia(imagePath, caption) {
         const fbResponse = await axios.post(fbUrl, form, {
             headers: form.getHeaders()
         });
-        
+
         const photoId = fbResponse.data.id;
         console.log("✅ Posted to Facebook! Photo ID:", photoId);
 
@@ -48,7 +48,7 @@ export async function publishToSocialMedia(imagePath, caption) {
                 access_token: META_TOKEN
             }
         });
-        
+
         const creationId = igContainerResponse.data.id;
 
         // Wait for Instagram to finish processing the container image
