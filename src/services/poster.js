@@ -5,7 +5,15 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const LOCAL_BG_PATH = path.join(__dirname, "..", "stadium-bg.jpg");
+
+// Local fallback backgrounds (committed to repo — used when Unsplash fetch fails)
+const LOCAL_BACKGROUNDS = [
+    path.join(__dirname, "..", "bg-1.jpg"), // floodlit pitch
+    path.join(__dirname, "..", "bg-2.jpg"), // match-night atmosphere
+    path.join(__dirname, "..", "bg-3.jpg"), // close-up grass texture
+    path.join(__dirname, "..", "bg-4.jpg"), // stadium wide panorama
+    path.join(__dirname, "..", "bg-5.jpg"), // pitch lines bird's eye
+];
 export async function generatePoster(match, caption, style) {
     const width = 1080;
     const height = 1350; // 4:5 ratio for mobile/Instagram
@@ -43,11 +51,12 @@ export async function generatePoster(match, caption, style) {
         ctx.fillRect(0, 0, width, height);
     } catch (e) {
         console.warn("Remote background load failed:", e.message);
-        // Try bundled local stadium background first
+        // Try rotating local fallback images (same modulo rotation as Unsplash list)
+        const localPath = LOCAL_BACKGROUNDS[match.fixture.id % LOCAL_BACKGROUNDS.length];
         try {
-            const localBg = await loadImage(LOCAL_BG_PATH);
+            const localBg = await loadImage(localPath);
             ctx.drawImage(localBg, 0, 0, width, height);
-            console.log("✅ Using local stadium-bg.jpg fallback");
+            console.log(`✅ Using local fallback: ${path.basename(localPath)}`);
 
             // Same dark overlay
             const overlay = ctx.createLinearGradient(0, 0, 0, height);
