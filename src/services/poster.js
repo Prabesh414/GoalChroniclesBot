@@ -16,15 +16,10 @@ export async function generatePoster(match, caption, style) {
         "https://images.unsplash.com/photo-1434648957308-5e6a859697e8?q=80&w=1080&h=1350&auto=format&fit=crop", // match-night atmosphere
         "https://images.unsplash.com/photo-1552667466-07770ae110d0?q=80&w=1080&h=1350&auto=format&fit=crop", // close-up grass texture
         "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?q=80&w=1080&h=1350&auto=format&fit=crop", // stadium at dusk
-        "https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=1080&h=1350&auto=format&fit=crop", // night match floodlights
-        "https://images.unsplash.com/photo-1521925830725-f4f28e4e3bf5?q=80&w=1080&h=1350&auto=format&fit=crop", // roaring crowd stand
-        "https://images.unsplash.com/photo-1530450269028-d4d7d7be34f7?q=80&w=1080&h=1350&auto=format&fit=crop", // ball on pitch
         "https://images.unsplash.com/photo-1518604666860-9ed391f76460?q=80&w=1080&h=1350&auto=format&fit=crop", // stadium full seats
-        "https://images.unsplash.com/photo-1504016798967-59a258e9383d?q=80&w=1080&h=1350&auto=format&fit=crop", // players tunnel walkout
-        "https://images.unsplash.com/photo-1551958219-acbc34c9e8b2?q=80&w=1080&h=1350&auto=format&fit=crop", // goal net closeup
         "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1080&h=1350&auto=format&fit=crop", // stadium wide panorama
         "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=1080&h=1350&auto=format&fit=crop", // pitch lines bird's eye
-        "https://images.unsplash.com/photo-1506202687253-52e1b29d3527?q=80&w=1080&h=1350&auto=format&fit=crop", // dramatic sky over pitch
+
     ];
 
 
