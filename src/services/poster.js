@@ -143,19 +143,74 @@ export async function generatePoster(match, caption, style) {
     // League Name
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 40px 'Arial Black', Impact, sans-serif";
-    ctx.fillText(match.league.name.toUpperCase(), width / 2, isEnded ? 920 : 1080, 850);
+    ctx.fillText(match.league.name.toUpperCase(), width / 2, isEnded ? 910 : 1080, 850);
 
-    // Shortened Caption or Goal Scorers space
-    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-    ctx.font = "italic 32px Arial, sans-serif";
-    ctx.shadowBlur = 10;
+    if (isEnded) {
+        // =============================================
+        // GOAL SCORERS SECTION (Result Posters Only)
+        // =============================================
+        const { homeScorers, awayScorers } = extractGoalScorers(match);
 
-    // Clean up caption: strictly remove all emojis
-    let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
-    if (shortCaption.length > 80) {
-        shortCaption = shortCaption.substring(0, 77).trim() + "...";
+        // Divider line above scorers
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(251, 191, 36, 0.5)"; // gold divider
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(60, 955);
+        ctx.lineTo(width - 60, 955);
+        ctx.stroke();
+
+        const scorerStartY = 995;
+        const scorerLineHeight = 38;
+        const homeX = 90;
+        const awayX = width - 90;
+        const maxScorers = 5; // cap so they don't overflow
+
+        ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+        ctx.shadowBlur = 8;
+
+        // Home scorers (left-aligned)
+        ctx.textAlign = "left";
+        ctx.font = "bold 28px Arial, sans-serif";
+        homeScorers.slice(0, maxScorers).forEach((s, i) => {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText(`⚽ ${s}`, homeX, scorerStartY + i * scorerLineHeight);
+        });
+
+        // Away scorers (right-aligned)
+        ctx.textAlign = "right";
+        awayScorers.slice(0, maxScorers).forEach((s, i) => {
+            ctx.fillStyle = "rgba(251, 191, 36, 0.9)"; // gold for away
+            ctx.fillText(`${s} ⚽`, awayX, scorerStartY + i * scorerLineHeight);
+        });
+
+        // Divider line below scorers
+        const scorerEndY = scorerStartY + Math.max(homeScorers.length, awayScorers.length, 1) * scorerLineHeight + 10;
+        ctx.strokeStyle = "rgba(251, 191, 36, 0.5)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(60, scorerEndY);
+        ctx.lineTo(width - 60, scorerEndY);
+        ctx.stroke();
+
+        // Caption as a smaller tagline below scorers
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.font = "italic 26px Arial, sans-serif";
+        ctx.shadowBlur = 10;
+        let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+        if (shortCaption.length > 90) shortCaption = shortCaption.substring(0, 87).trim() + "...";
+        wrapTextCenter(ctx, shortCaption, width / 2, scorerEndY + 45, 900, 38);
+    } else {
+        // UPCOMING: show caption prominently
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.font = "italic 32px Arial, sans-serif";
+        ctx.shadowBlur = 10;
+        ctx.textAlign = "center";
+        let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+        if (shortCaption.length > 80) shortCaption = shortCaption.substring(0, 77).trim() + "...";
+        wrapTextCenter(ctx, shortCaption, width / 2, 1180, 850, 45);
     }
-    wrapTextCenter(ctx, shortCaption, width / 2, isEnded ? 1020 : 1180, 850, 45);
 
     // Save folder
     const outputDir = "output";
@@ -167,6 +222,34 @@ export async function generatePoster(match, caption, style) {
     fs.writeFileSync(filePath, canvas.toBuffer("image/png"));
 
     return filePath;
+}
+
+// Extract goal scorers from match events array
+function extractGoalScorers(match) {
+    const events = match.events || [];
+    const homeScorers = [];
+    const awayScorers = [];
+
+    for (const event of events) {
+        // Only goals and own goals, skip penalties unless it was the decisive one
+        if (event.type === "Goal") {
+            const name = event.player?.name || "Unknown";
+            // Shorten long names to just last name for space
+            const shortName = name.split(" ").slice(-1)[0];
+            const minute = event.time?.elapsed;
+            const label = event.detail === "Own Goal"
+                ? `${shortName} ${minute}' (OG)`
+                : `${shortName} ${minute}'`;
+
+            if (event.team?.id === match.teams.home.id) {
+                homeScorers.push(label);
+            } else {
+                awayScorers.push(label);
+            }
+        }
+    }
+
+    return { homeScorers, awayScorers };
 }
 
 // helper for centered wrapping text
