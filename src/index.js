@@ -99,8 +99,12 @@ async function generateAndPublish(match, matchId) {
         console.log("🎨 Style:", style);
         console.log("📸 Poster:", posterPath);
 
-        await publishToSocialMedia(posterPath, caption);
-        markAsPublished(matchId);
+        const success = await publishToSocialMedia(posterPath, caption);
+        if (success) {
+            markAsPublished(matchId);
+        } else {
+            console.log("⚠️ Publishing failed or skipped. Match will be retried next run.");
+        }
 
         // Sleep to avoid rate limits (5 RPM for Free tier)
         await new Promise(r => setTimeout(r, 15000));

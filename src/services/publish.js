@@ -11,7 +11,7 @@ const META_TOKEN = process.env.META_ACCESS_TOKEN;
 export async function publishToSocialMedia(imagePath, caption) {
     if (!META_TOKEN || !FB_PAGE_ID || !IG_ACCOUNT_ID) {
         console.log("⚠️ Missing Meta credentials, skipping social media post.");
-        return;
+        return false;
     }
 
     try {
@@ -65,8 +65,10 @@ export async function publishToSocialMedia(imagePath, caption) {
         });
 
         console.log("✅ Posted to Instagram! Media ID:", igPublishResponse.data.id);
+        return true;
 
     } catch (error) {
         console.error("❌ Error publishing to social media:", error.response ? error.response.data : error.message);
+        return false;
     }
 }
