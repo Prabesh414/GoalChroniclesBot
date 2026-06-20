@@ -42,3 +42,22 @@ Rules:
     const result = await model.generateContent(prompt);
     return result.response.text();
 }
+
+export async function generateNewsCaption(newsItem) {
+    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" }); 
+    const prompt = `
+You are a football social media expert.
+Write a very short, engaging Instagram caption for this breaking news.
+
+Headline: ${newsItem.title}
+Summary: ${newsItem.summary}
+
+Rules:
+- 1 or 2 lines maximum
+- Ask a question to the followers to spark discussion
+- Add emojis
+- NO options or explanations
+`;
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+}

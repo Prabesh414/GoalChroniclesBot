@@ -7,6 +7,9 @@ import { generateCaption } from "./services/gemini.js";
 import { generatePosterStyle } from "./services/posterAI.js";
 import { generatePoster } from "./services/poster.js";
 import { publishToSocialMedia } from "./services/publish.js";
+import { getLatestFootballNews } from "./api/news.js";
+import { generateNewsPoster } from "./services/newsPoster.js";
+import { generateNewsCaption } from "./services/gemini.js";
 import fs from "fs";
 
 // Load tracking database
@@ -86,6 +89,35 @@ async function runBot() {
 
         else {
             console.log(`🏃 Match is currently live or in an unhandled state. Skipping.`);
+        }
+    }
+
+    // 3. News Poster Logic (Post 1 latest news per day/run if new)
+    console.log("\n📰 Checking for latest Football News...");
+    const latestNewsList = await getLatestFootballNews(1);
+    if (latestNewsList.length > 0) {
+        const topNews = latestNewsList[0];
+        // Create a unique ID for the news using a hash of the title or simply the title
+        const newsId = `news_${Buffer.from(topNews.title).toString('base64').substring(0, 15)}`;
+        
+        if (!publishedIDs.includes(newsId)) {
+            console.log(`🔥 New breaking news found! Generating News Poster...`);
+            try {
+                const caption = await generateNewsCaption(topNews);
+                const posterPath = await generateNewsPoster(topNews);
+                
+                console.log("📝 News Caption:", caption);
+                console.log("📸 News Poster:", posterPath);
+                
+                const success = await publishToSocialMedia(posterPath, caption);
+                if (success) {
+                    markAsPublished(newsId);
+                }
+            } catch (e) {
+                console.error("❌ Error generating/publishing news:", e);
+            }
+        } else {
+            console.log(`⏩ Top news already published today.`);
         }
     }
 }
