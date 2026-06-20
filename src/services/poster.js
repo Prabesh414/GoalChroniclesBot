@@ -1,7 +1,10 @@
 import { createCanvas, loadImage } from "canvas";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 export async function generatePoster(match, caption, style) {
     const width = 1080;
     const height = 1350; // 4:5 ratio for mobile/Instagram
@@ -56,7 +59,8 @@ export async function generatePoster(match, caption, style) {
 
     // Page Logo (Round)
     try {
-        const pageLogo = await loadImage("C:\\Users\\prabe\\Desktop\\Goalchronicles\\goal-chronicles\\src\\page-logo.png");
+        const logoPath = path.join(__dirname, "..", "page-logo.png");
+        const pageLogo = await loadImage(logoPath);
         const pLogoSize = 140;
         const logoX = width / 2;
         const logoY = 160;
