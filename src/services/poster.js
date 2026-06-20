@@ -9,37 +9,37 @@ export async function generatePoster(match, caption, style) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
 
-    // Background Gradients
-    const gradients = [
-        ['#1e3c72', '#2a5298'],
-        ['#ff416c', '#ff4b2b'],
-        ['#8E2DE2', '#4A00E0'],
-        ['#11998e', '#38ef7d'],
-        ['#0f2027', '#203a43', '#2c5364'],
-        ['#fc4a1a', '#f7b733'],
-        ['#232526', '#414345'],
-        ['#000428', '#004e92'],
-    ];
-    const paletteIndex = match.fixture.id % gradients.length;
-    const palette = gradients[paletteIndex];
+    // 1. Premium Stadium Background
+    try {
+        // High quality stadium texture from Unsplash
+        const bgUrl = "https://images.unsplash.com/photo-1518605368461-1ee12db63231?q=80&w=1080&h=1350&auto=format&fit=crop";
+        const background = await loadImage(bgUrl);
+        ctx.drawImage(background, 0, 0, width, height);
 
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    if (palette.length === 2) {
-        gradient.addColorStop(0, palette[0]);
-        gradient.addColorStop(1, palette[1]);
-    } else {
-        gradient.addColorStop(0, palette[0]);
-        gradient.addColorStop(0.5, palette[1]);
-        gradient.addColorStop(1, palette[2]);
+        // 2. Dark Overlay for Contrast (Vignette + Base Tint)
+        // Adds a deep gradient so the bright text and logos pop perfectly
+        const overlay = ctx.createLinearGradient(0, 0, 0, height);
+        overlay.addColorStop(0, "rgba(0, 0, 0, 0.6)");
+        overlay.addColorStop(0.5, "rgba(0, 0, 0, 0.4)");
+        overlay.addColorStop(1, "rgba(0, 0, 0, 0.85)");
+        ctx.fillStyle = overlay;
+        ctx.fillRect(0, 0, width, height);
+    } catch (e) {
+        console.log("Background load failed, using fallback gradient", e);
+        // Fallback Dark Gradient
+        const fallback = ctx.createLinearGradient(0, 0, 0, height);
+        fallback.addColorStop(0, "#0f2027");
+        fallback.addColorStop(0.5, "#203a43");
+        fallback.addColorStop(1, "#2c5364");
+        ctx.fillStyle = fallback;
+        ctx.fillRect(0, 0, width, height);
     }
 
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
-    // Minimalist Border
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-    ctx.lineWidth = 15;
-    ctx.strokeRect(40, 40, width - 80, height - 80);
+    // 3. Premium Border (Thin, sharp lines look more magazine-like)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(30, 30, width - 60, height - 60);
+    ctx.strokeRect(38, 38, width - 76, height - 76); // Double border effect
 
     // Page Logo (Round)
     try {
@@ -70,41 +70,57 @@ export async function generatePoster(match, caption, style) {
     const matchDate = new Date(match.fixture.date);
     const dateString = matchDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-    ctx.font = "bold 35px Arial";
+    // Premium Text Shadow config
+    ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 4;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 45px 'Arial Black', Impact, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(isEnded ? `FULL TIME` : `MATCH DAY`, width / 2, 310);
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-    ctx.font = "28px Arial";
+    ctx.fillStyle = "#fbbf24"; // Gold
+    ctx.font = "bold 28px Arial, sans-serif";
+    ctx.letterSpacing = "2px"; // Only works in some canvas versions, safe to leave
     ctx.fillText(dateString.toUpperCase(), width / 2, 360);
 
     // Team Logos & Names
     try {
         const homeLogo = await loadImage(match.teams.home.logo);
         const awayLogo = await loadImage(match.teams.away.logo);
-        const logoSize = 220;
+        const logoSize = 250; // slightly larger logos
 
-        const homeX = width / 2 - 260;
-        const awayX = width / 2 + 260;
-        const logosY = 480;
+        const homeX = width / 2 - 280;
+        const awayX = width / 2 + 280;
+        const logosY = 460;
 
+        // Draw logos with glow/shadow
+        ctx.shadowColor = "rgba(255, 255, 255, 0.2)";
+        ctx.shadowBlur = 30;
         ctx.drawImage(homeLogo, homeX - logoSize / 2, logosY, logoSize, logoSize);
         ctx.drawImage(awayLogo, awayX - logoSize / 2, logosY, logoSize, logoSize);
 
+        // Reset shadow for text
+        ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+        ctx.shadowBlur = 20;
+
         ctx.fillStyle = "#ffffff";
-        ctx.font = "italic bold 60px Arial";
+        ctx.font = "italic bold 80px 'Arial Black', Impact, sans-serif";
         
         if (isEnded) {
-            ctx.fillText(`${match.goals.home} - ${match.goals.away}`, width / 2, logosY + 110);
+            ctx.fillStyle = "#fbbf24";
+            ctx.fillText(`${match.goals.home} - ${match.goals.away}`, width / 2, logosY + 130);
         } else {
-            ctx.fillText("VS", width / 2, logosY + 110);
+            ctx.fillText("VS", width / 2, logosY + 130);
         }
 
         // Team Names Centered Under Logos
-        ctx.font = "bold 35px Arial";
-        wrapTextCenter(ctx, match.teams.home.name, homeX, logosY + 280, 400, 40);
-        wrapTextCenter(ctx, match.teams.away.name, awayX, logosY + 280, 400, 40);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 35px 'Arial Black', Impact, sans-serif";
+        wrapTextCenter(ctx, match.teams.home.name.toUpperCase(), homeX, logosY + 310, 400, 45);
+        wrapTextCenter(ctx, match.teams.away.name.toUpperCase(), awayX, logosY + 310, 400, 45);
 
     } catch (e) {
         console.error("Error loading logos:", e);
@@ -114,30 +130,32 @@ export async function generatePoster(match, caption, style) {
     const nptTime = matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kathmandu' });
     const utcTime = matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 
-    ctx.fillStyle = "#fbbf24"; // Gold color
-    ctx.font = "bold 55px Arial";
-    ctx.fillText(`${nptTime} NPT`, width / 2, 920);
+    if (!isEnded) {
+        ctx.fillStyle = "#fbbf24"; // Gold color
+        ctx.font = "bold 65px 'Arial Black', Impact, sans-serif";
+        ctx.fillText(`${nptTime} NPT`, width / 2, 920);
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-    ctx.font = "30px Arial";
-    ctx.fillText(`(${utcTime} UTC)`, width / 2, 980);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.font = "bold 30px Arial, sans-serif";
+        ctx.fillText(`(${utcTime} UTC)`, width / 2, 980);
+    }
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-    ctx.font = "bold 35px Arial";
-    // Limit width of league name to prevent horizontal cut-offs
-    ctx.fillText(match.league.name.toUpperCase(), width / 2, 1080, 850);
+    // League Name
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 40px 'Arial Black', Impact, sans-serif";
+    ctx.fillText(match.league.name.toUpperCase(), width / 2, isEnded ? 920 : 1080, 850);
 
-    // Shortened Caption
+    // Shortened Caption or Goal Scorers space
     ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-    ctx.font = "italic 28px Arial";
+    ctx.font = "italic 32px Arial, sans-serif";
+    ctx.shadowBlur = 10;
 
     // Clean up caption: strictly remove all emojis
     let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
-    // Limit to 80 chars to prevent vertical cut-off at the bottom
     if (shortCaption.length > 80) {
         shortCaption = shortCaption.substring(0, 77).trim() + "...";
     }
-    wrapTextCenter(ctx, shortCaption, width / 2, 1180, 850, 40);
+    wrapTextCenter(ctx, shortCaption, width / 2, isEnded ? 1020 : 1180, 850, 45);
 
     // Save folder
     const outputDir = "output";
