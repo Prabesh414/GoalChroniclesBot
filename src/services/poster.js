@@ -66,13 +66,14 @@ export async function generatePoster(match, caption, style) {
     }
 
     // Match Date & Title
+    const isEnded = match.fixture.status.short === "FT" || match.fixture.status.short === "AET" || match.fixture.status.short === "PEN";
     const matchDate = new Date(match.fixture.date);
     const dateString = matchDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
     ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
     ctx.font = "bold 35px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(`MATCH DAY`, width / 2, 310);
+    ctx.fillText(isEnded ? `FULL TIME` : `MATCH DAY`, width / 2, 310);
 
     ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
     ctx.font = "28px Arial";
@@ -93,7 +94,12 @@ export async function generatePoster(match, caption, style) {
 
         ctx.fillStyle = "#ffffff";
         ctx.font = "italic bold 60px Arial";
-        ctx.fillText("VS", width / 2, logosY + 110);
+        
+        if (isEnded) {
+            ctx.fillText(`${match.goals.home} - ${match.goals.away}`, width / 2, logosY + 110);
+        } else {
+            ctx.fillText("VS", width / 2, logosY + 110);
+        }
 
         // Team Names Centered Under Logos
         ctx.font = "bold 35px Arial";

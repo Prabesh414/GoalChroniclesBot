@@ -2,8 +2,8 @@ name: Daily GoalChronicles Poster Bot
 
 on:
   schedule:
-    # Runs at 18:15 UTC every day, which is 12:00 AM NPT (Nepal Time: UTC+5:45)
-    - cron: '15 18 * * *'
+    # Runs every 30 minutes
+    - cron: '*/30 * * * *'
   workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
 
 jobs:
