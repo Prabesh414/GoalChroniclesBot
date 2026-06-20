@@ -4,7 +4,7 @@ dotenv.config();
 import { getTodayFixtures, getFixtureDetails } from "./api/football.js";
 import { filterMatches } from "./services/filter.js";
 import { generateCaption } from "./services/gemini.js";
-import { generatePosterStyle } from "./services/POSTERAI.js";
+import { generatePosterStyle } from "./services/posterAI.js";
 import { generatePoster } from "./services/poster.js";
 import { publishToSocialMedia } from "./services/publish.js";
 import fs from "fs";
@@ -42,19 +42,19 @@ async function runBot() {
 
     const now = Date.now();
     // We consider "upcoming soon" if the match starts in less than 40 mins
-    const HYPE_THRESHOLD_MS = 40 * 60 * 1000; 
+    const HYPE_THRESHOLD_MS = 40 * 60 * 1000;
 
     for (const match of filtered) {
         const status = match.fixture.status.short;
         const matchTime = new Date(match.fixture.date).getTime();
-        
+
         console.log(`\n========================================`);
         console.log(`⚽ ${match.teams.home.name} VS ${match.teams.away.name} (${status})`);
-        
+
         // 1. Hype Poster Logic (Upcoming)
         if (status === "NS" || status === "TBD") {
             const timeUntilMatch = matchTime - now;
-            
+
             // If match is starting within 40 minutes and is in the future
             if (timeUntilMatch > 0 && timeUntilMatch <= HYPE_THRESHOLD_MS) {
                 const matchId = `hype_${match.fixture.id}`;
@@ -68,7 +68,7 @@ async function runBot() {
                 console.log(`⏳ Match is too far in the future or already started. (Time diff: Math.round(timeUntilMatch / 60000) mins)`);
             }
         }
-        
+
         // 2. Result Poster Logic (Ended)
         else if (status === "FT" || status === "AET" || status === "PEN") {
             const matchId = `result_${match.fixture.id}`;
@@ -82,8 +82,8 @@ async function runBot() {
             } else {
                 console.log(`⏩ Result poster already published.`);
             }
-        } 
-        
+        }
+
         else {
             console.log(`🏃 Match is currently live or in an unhandled state. Skipping.`);
         }

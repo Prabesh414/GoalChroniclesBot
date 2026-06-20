@@ -4,7 +4,7 @@ dotenv.config();
 import { getTodayFixtures, getYesterdayFixtures, getFixtureDetails } from "./src/api/football.js";
 import { filterMatches } from "./src/services/filter.js";
 import { generateCaption } from "./src/services/gemini.js";
-import { generatePosterStyle } from "./src/services/POSTERAI.js";
+import { generatePosterStyle } from "./src/services/posterAI.js";
 import { generatePoster } from "./src/services/poster.js";
 import fs from "fs";
 
@@ -16,7 +16,7 @@ async function testBot() {
     // and today's fixtures to see UPCOMING matches.
     const yesterdayFixtures = await getYesterdayFixtures();
     const todayFixtures = await getTodayFixtures();
-    
+
     const allFixtures = [...(yesterdayFixtures || []), ...(todayFixtures || [])];
     const filtered = filterMatches(allFixtures);
 
