@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { getTodayFixtures, getYesterdayFixtures } from "./src/api/football.js";
+import { getTodayFixtures, getYesterdayFixtures, getFixtureDetails } from "./src/api/football.js";
 import { filterMatches } from "./src/services/filter.js";
 import { generateCaption } from "./src/services/gemini.js";
 import { generatePosterStyle } from "./src/services/POSTERAI.js";
@@ -39,13 +39,26 @@ async function testBot() {
     }
 
     for (const testCase of matchesToTest) {
-        const { type, match } = testCase;
+        const { type, match: baseMatch } = testCase;
         console.log(`\n========================================`);
         console.log(`⚽ TESTING: ${type}`);
-        console.log(`Match: ${match.teams.home.name} VS ${match.teams.away.name}`);
+        console.log(`Match: ${baseMatch.teams.home.name} VS ${baseMatch.teams.away.name}`);
         console.log(`========================================`);
 
         try {
+            let match = baseMatch;
+
+            // For ended matches, fetch full details to get goal scorer events
+            const isEnded = ["FT", "AET", "PEN"].includes(baseMatch.fixture.status.short);
+            if (isEnded) {
+                console.log("🔍 Fetching full match details (events/scorers)...");
+                const full = await getFixtureDetails(baseMatch.fixture.id);
+                if (full) {
+                    match = full;
+                    const goals = (match.events || []).filter(e => e.type === "Goal");
+                    console.log(`  Found ${goals.length} goal event(s):`, goals.map(g => g.player?.name + " " + g.time?.elapsed + "'"));
+                }
+            }
             console.log("📝 Generating caption...");
             const caption = await generateCaption(match);
             console.log("Caption:\n", caption, "\n");

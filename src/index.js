@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { getTodayFixtures } from "./api/football.js";
+import { getTodayFixtures, getFixtureDetails } from "./api/football.js";
 import { filterMatches } from "./services/filter.js";
 import { generateCaption } from "./services/gemini.js";
 import { generatePosterStyle } from "./services/POSTERAI.js";
@@ -73,8 +73,12 @@ async function runBot() {
         else if (status === "FT" || status === "AET" || status === "PEN") {
             const matchId = `result_${match.fixture.id}`;
             if (!publishedIDs.includes(matchId)) {
-                console.log(`🏆 Match Finished! Generating Result Poster...`);
-                await generateAndPublish(match, matchId);
+                console.log(`🏆 Match Finished! Fetching full details for goal scorers...`);
+                // Fetch the detailed fixture so we get the events (goal scorers)
+                const fullMatch = await getFixtureDetails(match.fixture.id);
+                const matchWithDetails = fullMatch || match; // fallback to basic data if call fails
+                console.log(`  Found ${(matchWithDetails.events || []).filter(e => e.type === "Goal").length} goal event(s)`);
+                await generateAndPublish(matchWithDetails, matchId);
             } else {
                 console.log(`⏩ Result poster already published.`);
             }
