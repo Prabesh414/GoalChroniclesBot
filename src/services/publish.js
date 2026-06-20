@@ -1,12 +1,19 @@
 import axios from "axios";
 import fs from "fs";
-import FormData from "form-data";
+import path from "path";
+import { v2 as cloudinary } from "cloudinary";
 import dotenv from "dotenv";
 dotenv.config();
 
-const FB_PAGE_ID = process.env.FACEBOOK_PAGE_ID;
+const FB_PAGE_ID    = process.env.FACEBOOK_PAGE_ID;
 const IG_ACCOUNT_ID = process.env.INSTAGRAM_ACCOUNT_ID;
-const META_TOKEN = process.env.META_ACCESS_TOKEN;
+const META_TOKEN    = process.env.META_ACCESS_TOKEN;
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key:    process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function publishToSocialMedia(imagePath, caption) {
     if (!META_TOKEN || !FB_PAGE_ID || !IG_ACCOUNT_ID) {
@@ -14,73 +21,75 @@ export async function publishToSocialMedia(imagePath, caption) {
         return false;
     }
 
-    // Pre-flight: verify the image file actually exists before attempting upload
     if (!fs.existsSync(imagePath)) {
         console.error(`❌ Image file not found at path: ${imagePath}`);
         return false;
     }
 
     try {
-        console.log("🚀 Publishing to Facebook...");
-
-        // 1. Upload to Facebook Page
-        const fbUrl = `https://graph.facebook.com/v20.0/${FB_PAGE_ID}/photos`;
-        const form = new FormData();
-        form.append("access_token", META_TOKEN);
-        form.append("message", caption);
-        form.append("source", fs.createReadStream(imagePath));
-
-        const fbResponse = await axios.post(fbUrl, form, {
-            headers: form.getHeaders()
+        // ─────────────────────────────────────────────────────────────────
+        // STEP 1: Upload image to Cloudinary to get a public URL.
+        //         Both Facebook photo post and Instagram need a public URL.
+        // ─────────────────────────────────────────────────────────────────
+        console.log("☁️  Uploading image to Cloudinary...");
+        const publicId = `goalchronicles_${path.basename(imagePath, path.extname(imagePath))}`;
+        const uploadResult = await cloudinary.uploader.upload(imagePath, {
+            public_id:     publicId,
+            overwrite:     true,
+            resource_type: "image",
         });
+        const imageUrl = uploadResult.secure_url;
+        console.log("✅ Cloudinary upload done:", imageUrl);
 
-        const photoId = fbResponse.data.id;
-        console.log("✅ Posted to Facebook! Photo ID:", photoId);
+        // ─────────────────────────────────────────────────────────────────
+        // STEP 2: Post the poster image to Facebook → appears in Photos tab.
+        // ─────────────────────────────────────────────────────────────────
+        console.log("🖼️  Posting photo to Facebook Photos tab...");
+        const photoRes = await axios.post(
+            `https://graph.facebook.com/v20.0/${FB_PAGE_ID}/photos`,
+            null,
+            { params: { url: imageUrl, caption: caption, access_token: META_TOKEN } }
+        );
+        console.log("✅ Photo posted! ID:", photoRes.data.id);
 
-        // 2. Get Public Image URL from Facebook (Instagram needs a public URL)
-        console.log("🔗 Fetching public image URL for Instagram...");
-        const photoUrlReq = `https://graph.facebook.com/v20.0/${photoId}?fields=images&access_token=${META_TOKEN}`;
-        const photoData = await axios.get(photoUrlReq);
-        const publicImageUrl = photoData.data.images[0].source; // Get the highest resolution image
+        // ─────────────────────────────────────────────────────────────────
+        // STEP 3: Post caption as a text post to Facebook → appears in All tab.
+        // ─────────────────────────────────────────────────────────────────
+        console.log("📝 Posting text to Facebook All tab...");
+        const feedRes = await axios.post(
+            `https://graph.facebook.com/v20.0/${FB_PAGE_ID}/feed`,
+            null,
+            { params: { message: caption, access_token: META_TOKEN } }
+        );
+        console.log("✅ Timeline post created! ID:", feedRes.data.id);
 
+        // ─────────────────────────────────────────────────────────────────
+        // STEP 4: Publish the same image to Instagram.
+        // ─────────────────────────────────────────────────────────────────
         console.log("🚀 Publishing to Instagram...");
+        const igContainerRes = await axios.post(
+            `https://graph.facebook.com/v20.0/${IG_ACCOUNT_ID}/media`,
+            null,
+            { params: { image_url: imageUrl, caption: caption, access_token: META_TOKEN } }
+        );
+        const creationId = igContainerRes.data.id;
 
-        // 3. Create Instagram Media Container
-        const igContainerUrl = `https://graph.facebook.com/v20.0/${IG_ACCOUNT_ID}/media`;
-        const igContainerResponse = await axios.post(igContainerUrl, null, {
-            params: {
-                image_url: publicImageUrl,
-                caption: caption,
-                access_token: META_TOKEN
-            }
-        });
-
-        const creationId = igContainerResponse.data.id;
-
-        // Wait for Instagram to finish processing the container image
-        console.log("⏳ Waiting 5 seconds for Instagram to process the image container...");
+        console.log("⏳ Waiting 5 seconds for Instagram to process...");
         await new Promise(r => setTimeout(r, 5000));
 
-        // 4. Publish the Instagram Container
-        const igPublishUrl = `https://graph.facebook.com/v20.0/${IG_ACCOUNT_ID}/media_publish`;
-        const igPublishResponse = await axios.post(igPublishUrl, null, {
-            params: {
-                creation_id: creationId,
-                access_token: META_TOKEN
-            }
-        });
-
-        console.log("✅ Posted to Instagram! Media ID:", igPublishResponse.data.id);
+        const igPublishRes = await axios.post(
+            `https://graph.facebook.com/v20.0/${IG_ACCOUNT_ID}/media_publish`,
+            null,
+            { params: { creation_id: creationId, access_token: META_TOKEN } }
+        );
+        console.log("✅ Posted to Instagram! Media ID:", igPublishRes.data.id);
         return true;
 
     } catch (error) {
         if (error.response) {
-            // Facebook/Instagram API returned an error response
-            console.error("❌ Error publishing to social media (API error):", JSON.stringify(error.response.data, null, 2));
-        } else if (error.message) {
-            console.error("❌ Error publishing to social media:", error.message);
+            console.error("❌ Error publishing (API error):", JSON.stringify(error.response.data, null, 2));
         } else {
-            console.error("❌ Error publishing to social media (unknown error):", error);
+            console.error("❌ Error publishing:", error.message || error);
         }
         return false;
     }
