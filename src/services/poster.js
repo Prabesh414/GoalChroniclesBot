@@ -216,7 +216,6 @@ export async function generatePoster(match, caption, style) {
         ctx.font = "italic 26px Arial, sans-serif";
         ctx.shadowBlur = 10;
         let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
-        if (shortCaption.length > 90) shortCaption = shortCaption.substring(0, 87).trim() + "...";
         wrapTextCenter(ctx, shortCaption, width / 2, scorerEndY + 45, 900, 38);
     } else {
         // UPCOMING: show caption prominently
@@ -225,7 +224,6 @@ export async function generatePoster(match, caption, style) {
         ctx.shadowBlur = 10;
         ctx.textAlign = "center";
         let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
-        if (shortCaption.length > 80) shortCaption = shortCaption.substring(0, 77).trim() + "...";
         wrapTextCenter(ctx, shortCaption, width / 2, 1180, 850, 45);
     }
 
