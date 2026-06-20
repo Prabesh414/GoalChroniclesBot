@@ -1,10 +1,7 @@
 name: Daily GoalChronicles Poster Bot
 
 on:
-  schedule:
-    # Runs every 30 minutes
-    - cron: '*/30 * * * *'
-  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab or via external API
 
 jobs:
   build-and-post:
@@ -16,8 +13,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          # We need a custom token if we want the action to commit back to the repo, 
-          # but the default GITHUB_TOKEN usually works if permissions are set correctly.
           fetch-depth: 0
 
       - name: Setup Node.js
