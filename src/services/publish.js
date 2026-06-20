@@ -53,7 +53,7 @@ export async function publishToSocialMedia(imagePath, caption) {
         console.log("✅ Photo posted! ID:", photoRes.data.id);
 
         // ─────────────────────────────────────────────────────────────────
-        // STEP 3: Post caption as a text post to Facebook → appears in All tab.
+        // STEP 3: Post caption as text to Facebook feed → appears in All tab.
         // ─────────────────────────────────────────────────────────────────
         console.log("📝 Posting text to Facebook All tab...");
         const feedRes = await axios.post(
