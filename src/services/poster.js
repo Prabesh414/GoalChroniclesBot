@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const LOCAL_BG_PATH = path.join(__dirname, "..", "stadium-bg.jpg");
 export async function generatePoster(match, caption, style) {
     const width = 1080;
     const height = 1350; // 4:5 ratio for mobile/Instagram
@@ -41,14 +42,30 @@ export async function generatePoster(match, caption, style) {
         ctx.fillStyle = overlay;
         ctx.fillRect(0, 0, width, height);
     } catch (e) {
-        console.log("Background load failed, using fallback gradient");
-        // Fallback Dark Gradient
-        const fallback = ctx.createLinearGradient(0, 0, 0, height);
-        fallback.addColorStop(0, "#0f2027");
-        fallback.addColorStop(0.5, "#203a43");
-        fallback.addColorStop(1, "#2c5364");
-        ctx.fillStyle = fallback;
-        ctx.fillRect(0, 0, width, height);
+        console.warn("Remote background load failed:", e.message);
+        // Try bundled local stadium background first
+        try {
+            const localBg = await loadImage(LOCAL_BG_PATH);
+            ctx.drawImage(localBg, 0, 0, width, height);
+            console.log("✅ Using local stadium-bg.jpg fallback");
+
+            // Same dark overlay
+            const overlay = ctx.createLinearGradient(0, 0, 0, height);
+            overlay.addColorStop(0, "rgba(0, 0, 0, 0.6)");
+            overlay.addColorStop(0.5, "rgba(0, 0, 0, 0.4)");
+            overlay.addColorStop(1, "rgba(0, 0, 0, 0.85)");
+            ctx.fillStyle = overlay;
+            ctx.fillRect(0, 0, width, height);
+        } catch (e2) {
+            console.warn("Local background also failed, using gradient:", e2.message);
+            // Last-resort gradient
+            const fallback = ctx.createLinearGradient(0, 0, 0, height);
+            fallback.addColorStop(0, "#0f2027");
+            fallback.addColorStop(0.5, "#203a43");
+            fallback.addColorStop(1, "#2c5364");
+            ctx.fillStyle = fallback;
+            ctx.fillRect(0, 0, width, height);
+        }
     }
 
     // 3. Premium Border (Thin, sharp lines look more magazine-like)
