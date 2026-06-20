@@ -20,8 +20,8 @@ export async function publishToSocialMedia(imagePath, caption) {
     }
 
     try {
-        // ── STEP 1: Upload poster to Facebook → appears in Photos tab ────
-        console.log("🖼️  Posting photo to Facebook...");
+        // ── STEP 1: Post image + caption to Facebook ─────────────────────
+        console.log("🚀 Publishing to Facebook...");
         const form = new FormData();
         form.append("access_token", META_TOKEN);
         form.append("caption", caption);
@@ -33,25 +33,16 @@ export async function publishToSocialMedia(imagePath, caption) {
             { headers: form.getHeaders() }
         );
         const photoId = fbRes.data.id;
-        console.log("✅ Photo posted! ID:", photoId);
+        console.log("✅ Posted to Facebook! Photo ID:", photoId);
 
-        // ── STEP 2: Text post to feed → appears in All tab ───────────────
-        console.log("📝 Posting text to All tab...");
-        const feedRes = await axios.post(
-            `https://graph.facebook.com/v20.0/${FB_PAGE_ID}/feed`,
-            null,
-            { params: { message: caption, access_token: META_TOKEN } }
-        );
-        console.log("✅ Timeline post created! ID:", feedRes.data.id);
-
-        // ── STEP 3: Get the hosted image URL for Instagram ────────────────
+        // ── STEP 2: Get the hosted image URL for Instagram ────────────────
         const photoData = await axios.get(
             `https://graph.facebook.com/v20.0/${photoId}`,
             { params: { fields: "images", access_token: META_TOKEN } }
         );
         const imageUrl = photoData.data.images[0].source;
 
-        // ── STEP 4: Publish to Instagram ──────────────────────────────────
+        // ── STEP 3: Publish to Instagram ──────────────────────────────────
         console.log("🚀 Publishing to Instagram...");
         const containerRes = await axios.post(
             `https://graph.facebook.com/v20.0/${IG_ACCOUNT_ID}/media`,
