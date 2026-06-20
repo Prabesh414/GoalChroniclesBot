@@ -9,15 +9,25 @@ export async function generatePoster(match, caption, style) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
 
-    // 1. Premium Stadium Background
+    // 1. Premium Stadium Backgrounds — rotates per match so every poster looks different
+    const stadiumBackgrounds = [
+        "https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?q=80&w=1080&h=1350&auto=format&fit=crop", // floodlit pitch
+        "https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=1080&h=1350&auto=format&fit=crop", // packed stadium aerial
+        "https://images.unsplash.com/photo-1434648957308-5e6a859697e8?q=80&w=1080&h=1350&auto=format&fit=crop", // match-night atmosphere
+        "https://images.unsplash.com/photo-1552667466-07770ae110d0?q=80&w=1080&h=1350&auto=format&fit=crop", // close-up grass texture
+        "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?q=80&w=1080&h=1350&auto=format&fit=crop", // stadium at dusk
+
+    ];
+
+
+
+    const bgUrl = stadiumBackgrounds[match.fixture.id % stadiumBackgrounds.length];
+
     try {
-        // High quality stadium texture from Unsplash (updated working link)
-        const bgUrl = "https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?q=80&w=1080&h=1350&auto=format&fit=crop";
         const background = await loadImage(bgUrl);
         ctx.drawImage(background, 0, 0, width, height);
 
         // 2. Dark Overlay for Contrast (Vignette + Base Tint)
-        // Adds a deep gradient so the bright text and logos pop perfectly
         const overlay = ctx.createLinearGradient(0, 0, 0, height);
         overlay.addColorStop(0, "rgba(0, 0, 0, 0.6)");
         overlay.addColorStop(0.5, "rgba(0, 0, 0, 0.4)");
@@ -25,7 +35,7 @@ export async function generatePoster(match, caption, style) {
         ctx.fillStyle = overlay;
         ctx.fillRect(0, 0, width, height);
     } catch (e) {
-        console.log("Background load failed, using fallback gradient", e);
+        console.log("Background load failed, using fallback gradient");
         // Fallback Dark Gradient
         const fallback = ctx.createLinearGradient(0, 0, 0, height);
         fallback.addColorStop(0, "#0f2027");
@@ -108,7 +118,7 @@ export async function generatePoster(match, caption, style) {
 
         ctx.fillStyle = "#ffffff";
         ctx.font = "italic bold 80px 'Arial Black', Impact, sans-serif";
-        
+
         if (isEnded) {
             ctx.fillStyle = "#fbbf24";
             ctx.fillText(`${match.goals.home} - ${match.goals.away}`, width / 2, logosY + 130);
