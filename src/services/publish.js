@@ -14,6 +14,12 @@ export async function publishToSocialMedia(imagePath, caption) {
         return false;
     }
 
+    // Pre-flight: verify the image file actually exists before attempting upload
+    if (!fs.existsSync(imagePath)) {
+        console.error(`❌ Image file not found at path: ${imagePath}`);
+        return false;
+    }
+
     try {
         console.log("🚀 Publishing to Facebook...");
 
@@ -68,7 +74,14 @@ export async function publishToSocialMedia(imagePath, caption) {
         return true;
 
     } catch (error) {
-        console.error("❌ Error publishing to social media:", error.response ? error.response.data : error.message);
+        if (error.response) {
+            // Facebook/Instagram API returned an error response
+            console.error("❌ Error publishing to social media (API error):", JSON.stringify(error.response.data, null, 2));
+        } else if (error.message) {
+            console.error("❌ Error publishing to social media:", error.message);
+        } else {
+            console.error("❌ Error publishing to social media (unknown error):", error);
+        }
         return false;
     }
 }

@@ -115,17 +115,17 @@ export async function generateNewsPoster(newsItem) {
     ctx.font = "bold 30px Arial, sans-serif";
     ctx.fillText(`Source: Sky Sports${dateStr}`, width / 2, 1150);
 
-    // Save folder
-    const outputDir = "output";
+    // Save folder — use an absolute path so fs.createReadStream works regardless of CWD
+    const outputDir = path.resolve("output");
     if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir);
+        fs.mkdirSync(outputDir, { recursive: true });
     }
 
     const filename = `news_${Date.now()}.png`;
     const filePath = path.join(outputDir, filename);
     fs.writeFileSync(filePath, canvas.toBuffer("image/png"));
 
-    return filePath;
+    return filePath; // absolute path
 }
 
 function wrapTextCenter(ctx, text, x, y, maxWidth, lineHeight) {
