@@ -5,7 +5,7 @@ dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function generateCaption(match) {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Using 1.5 flash for better quality and stability
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
 
     const isEnded = match.fixture.status.short === "FT" || match.fixture.status.short === "AET" || match.fixture.status.short === "PEN";
     const score = isEnded ? `${match.goals.home} - ${match.goals.away}` : "Upcoming";

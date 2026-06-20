@@ -11,8 +11,8 @@ export async function generatePoster(match, caption, style) {
 
     // 1. Premium Stadium Background
     try {
-        // High quality stadium texture from Unsplash
-        const bgUrl = "https://images.unsplash.com/photo-1518605368461-1ee12db63231?q=80&w=1080&h=1350&auto=format&fit=crop";
+        // High quality stadium texture from Unsplash (updated working link)
+        const bgUrl = "https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?q=80&w=1080&h=1350&auto=format&fit=crop";
         const background = await loadImage(bgUrl);
         ctx.drawImage(background, 0, 0, width, height);
 
