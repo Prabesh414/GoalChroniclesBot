@@ -13,12 +13,12 @@ const FOOTBALL_RSS = "https://www.skysports.com/rss/11095";
 export async function getLatestFootballNews(limit = 5) {
     try {
         const feed = await parser.parseURL(FOOTBALL_RSS);
-        
+
         // Return top 'limit' articles
         return feed.items.slice(0, limit).map(item => {
             // Sky Sports often appends "LIVE!" or " - LIVE" to the end of headlines.
-            // This removes it ONLY if it's at the very end of the text.
-            let cleanTitle = item.title.replace(/(?:\s+|-|:)*\bLIVE!?$/i, '').trim();
+            // We trim first because the RSS feed sometimes has trailing spaces (e.g. "LIVE! ").
+            let cleanTitle = item.title.trim().replace(/(?:\s+|-|:)*\bLIVE!?$/i, '').trim();
 
             return {
                 title: cleanTitle,
