@@ -97,8 +97,9 @@ async function runBot() {
     const latestNewsList = await getLatestFootballNews(1);
     if (latestNewsList.length > 0) {
         const topNews = latestNewsList[0];
-        // Create a unique ID for the news using a hash of the title or simply the title
-        const newsId = `news_${Buffer.from(topNews.title).toString('base64').substring(0, 15)}`;
+        // Create a unique ID for the news using a hash of the article link
+        // This is much more stable than the title, which editors often tweak after publishing
+        const newsId = `news_${Buffer.from(topNews.link).toString('base64').substring(0, 15)}`;
         
         if (!publishedIDs.includes(newsId)) {
             console.log(`🔥 New breaking news found! Generating News Poster...`);
