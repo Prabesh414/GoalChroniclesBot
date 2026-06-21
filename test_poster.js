@@ -3,7 +3,7 @@ dotenv.config();
 
 import { getTodayFixtures, getYesterdayFixtures, getFixtureDetails } from "./src/api/football.js";
 import { filterMatches } from "./src/services/filter.js";
-import { generateCaption } from "./src/services/gemini.js";
+import { generateCaption, generatePosterText } from "./src/services/gemini.js";
 import { generatePosterStyle } from "./src/services/posterAI.js";
 import { generatePoster } from "./src/services/poster.js";
 import fs from "fs";
@@ -66,8 +66,12 @@ async function testBot() {
             console.log("🎨 Determining style...");
             const style = await generatePosterStyle(match, caption);
 
+            console.log("🤖 Generating AI Analysis/Key Player...");
+            const aiText = await generatePosterText(match);
+            console.log("AI Text:\n", aiText, "\n");
+
             console.log("📸 Generating poster image...");
-            const posterPath = await generatePoster(match, caption, style);
+            const posterPath = await generatePoster(match, caption, style, aiText);
 
             console.log(`✅ SUCCESS! Check your 'output' folder for: ${posterPath}`);
         } catch (error) {

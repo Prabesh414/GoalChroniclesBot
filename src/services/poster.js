@@ -14,7 +14,7 @@ const LOCAL_BACKGROUNDS = [
     path.join(__dirname, "..", "bg-4.jpg"), // stadium wide panorama
     path.join(__dirname, "..", "bg-5.jpg"), // pitch lines bird's eye
 ];
-export async function generatePoster(match, caption, style) {
+export async function generatePoster(match, caption, style, aiText = "") {
     const width = 1080;
     const height = 1350; // 4:5 ratio for mobile/Instagram
 
@@ -236,21 +236,46 @@ export async function generatePoster(match, caption, style) {
         ctx.lineTo(width - 60, scorerEndY);
         ctx.stroke();
 
-        // Caption as a smaller tagline below scorers
-        ctx.textAlign = "center";
-        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-        ctx.font = "italic 26px Arial, sans-serif";
-        ctx.shadowBlur = 10;
-        let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
-        wrapTextCenter(ctx, shortCaption, width / 2, scorerEndY + 45, 900, 38);
+        // AI Match Analysis
+        if (aiText) {
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "bold 28px Arial, sans-serif";
+            ctx.fillText("MATCH ANALYSIS", width / 2, scorerEndY + 40);
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.font = "italic 24px Arial, sans-serif";
+            let cleanAi = aiText.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+            wrapTextCenter(ctx, cleanAi, width / 2, scorerEndY + 80, 900, 34);
+        } else {
+            // Fallback to caption
+            ctx.textAlign = "center";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+            ctx.font = "italic 26px Arial, sans-serif";
+            ctx.shadowBlur = 10;
+            let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+            wrapTextCenter(ctx, shortCaption, width / 2, scorerEndY + 45, 900, 38);
+        }
     } else {
-        // UPCOMING: show caption prominently
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        ctx.font = "italic 32px Arial, sans-serif";
-        ctx.shadowBlur = 10;
+        // UPCOMING: show Key Player prominently
         ctx.textAlign = "center";
-        let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
-        wrapTextCenter(ctx, shortCaption, width / 2, 1180, 850, 45);
+        if (aiText) {
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "bold 32px Arial, sans-serif";
+            ctx.fillText("KEY PLAYER TO WATCH", width / 2, 1140);
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.font = "italic 28px Arial, sans-serif";
+            // Strip "Key Player: " prefix if Gemini included it
+            let cleanAi = aiText.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').replace(/^Key Player( to watch)?:?\s*-?\s*/i, '').trim();
+            wrapTextCenter(ctx, cleanAi, width / 2, 1190, 850, 40);
+        } else {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.font = "italic 32px Arial, sans-serif";
+            ctx.shadowBlur = 10;
+            let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+            wrapTextCenter(ctx, shortCaption, width / 2, 1180, 850, 45);
+        }
     }
 
     // Save folder

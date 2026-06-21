@@ -61,3 +61,26 @@ Rules:
     const result = await model.generateContent(prompt);
     return result.response.text();
 }
+
+export async function generatePosterText(match) {
+    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" }); 
+    const isEnded = match.fixture.status.short === "FT" || match.fixture.status.short === "AET" || match.fixture.status.short === "PEN";
+
+    const prompt = isEnded ? `
+You are a football expert. Write a very short match analysis (max 2 sentences) for the match between ${match.teams.home.name} and ${match.teams.away.name} which ended ${match.goals.home}-${match.goals.away}.
+Focus on the performance, a key moment, or the outcome. Keep it engaging.
+DO NOT include any hashtags.
+` : `
+You are a football expert. Suggest ONE key player to watch in the upcoming match between ${match.teams.home.name} and ${match.teams.away.name}.
+Respond with ONLY the player's name and a tiny reason (max 1 sentence). Example: "Key Player: Bukayo Saka - His pace will be dangerous."
+DO NOT include any hashtags.
+`;
+
+    try {
+        const result = await model.generateContent(prompt);
+        return result.response.text().trim();
+    } catch (e) {
+        console.error("Error generating poster text:", e);
+        return "";
+    }
+}
