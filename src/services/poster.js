@@ -224,72 +224,80 @@ export async function generatePoster(match, caption, style, aiText = "") {
     ctx.fillText(match.league.name.toUpperCase(), width / 2, isEnded ? 910 : 1080, 850);
 
     if (isEnded) {
-        // =============================================
-        // GOAL SCORERS SECTION (Result Posters Only)
-        // =============================================
         const { homeScorers, awayScorers } = extractGoalScorers(match);
+        const hasScorers = homeScorers.length > 0 || awayScorers.length > 0;
 
-        // Divider line above scorers
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = "rgba(251, 191, 36, 0.5)"; // gold divider
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(60, 955);
-        ctx.lineTo(width - 60, 955);
-        ctx.stroke();
 
-        const scorerStartY = 995;
-        const scorerLineHeight = 38;
-        const homeX = 90;
-        const awayX = width - 90;
-        const maxScorers = 5; // cap so they don't overflow
+        let analysisStartY = 970;
 
-        ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
-        ctx.shadowBlur = 8;
+        if (hasScorers) {
+            // ── Divider above scorers ─────────────────────────────────────────
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.5)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(60, 955);
+            ctx.lineTo(width - 60, 955);
+            ctx.stroke();
 
-        // Home scorers (left-aligned)
-        ctx.textAlign = "left";
-        ctx.font = "bold 28px Arial, sans-serif";
-        homeScorers.slice(0, maxScorers).forEach((s, i) => {
-            ctx.fillStyle = "#ffffff";
-            ctx.fillText(`⚽ ${s}`, homeX, scorerStartY + i * scorerLineHeight);
-        });
+            const scorerStartY = 995;
+            const scorerLineHeight = 38;
+            const maxScorers = 5;
 
-        // Away scorers (right-aligned)
-        ctx.textAlign = "right";
-        awayScorers.slice(0, maxScorers).forEach((s, i) => {
-            ctx.fillStyle = "rgba(251, 191, 36, 0.9)"; // gold for away
-            ctx.fillText(`${s} ⚽`, awayX, scorerStartY + i * scorerLineHeight);
-        });
+            ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+            ctx.shadowBlur = 8;
 
-        // Divider line below scorers
-        const scorerEndY = scorerStartY + Math.max(homeScorers.length, awayScorers.length, 1) * scorerLineHeight + 10;
-        ctx.strokeStyle = "rgba(251, 191, 36, 0.5)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(60, scorerEndY);
-        ctx.lineTo(width - 60, scorerEndY);
-        ctx.stroke();
+            ctx.textAlign = "left";
+            ctx.font = "bold 28px Arial, sans-serif";
+            homeScorers.slice(0, maxScorers).forEach((s, i) => {
+                ctx.fillStyle = "#ffffff";
+                ctx.fillText(`⚽ ${s}`, 90, scorerStartY + i * scorerLineHeight);
+            });
 
-        // AI Match Analysis
+            ctx.textAlign = "right";
+            awayScorers.slice(0, maxScorers).forEach((s, i) => {
+                ctx.fillStyle = "rgba(251, 191, 36, 0.9)";
+                ctx.fillText(`${s} ⚽`, width - 90, scorerStartY + i * scorerLineHeight);
+            });
+
+            // ── Divider below scorers ─────────────────────────────────────────
+            analysisStartY = scorerStartY + Math.max(homeScorers.length, awayScorers.length, 1) * scorerLineHeight + 10;
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.5)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(60, analysisStartY);
+            ctx.lineTo(width - 60, analysisStartY);
+            ctx.stroke();
+            analysisStartY += 10;
+        } else {
+            // No scorer data — draw a single clean divider and skip scorer section
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.4)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(60, 955);
+            ctx.lineTo(width - 60, 955);
+            ctx.stroke();
+        }
+
+        // ── Match Analysis ────────────────────────────────────────────────────
         if (aiText) {
             ctx.textAlign = "center";
             ctx.fillStyle = "#fbbf24";
             ctx.font = "bold 28px Arial, sans-serif";
-            ctx.fillText("MATCH ANALYSIS", width / 2, scorerEndY + 40);
+            ctx.shadowBlur = 0;
+            ctx.fillText("MATCH ANALYSIS", width / 2, analysisStartY + 40);
 
             ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
             ctx.font = "italic 24px Arial, sans-serif";
             let cleanAi = aiText.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
-            wrapTextCenter(ctx, cleanAi, width / 2, scorerEndY + 80, 900, 34);
+            wrapTextCenter(ctx, cleanAi, width / 2, analysisStartY + 80, 900, 34);
         } else {
-            // Fallback to caption
             ctx.textAlign = "center";
             ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
             ctx.font = "italic 26px Arial, sans-serif";
             ctx.shadowBlur = 10;
             let shortCaption = caption.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
-            wrapTextCenter(ctx, shortCaption, width / 2, scorerEndY + 45, 900, 38);
+            wrapTextCenter(ctx, shortCaption, width / 2, analysisStartY + 45, 900, 38);
         }
     } else {
         // UPCOMING: show Key Player prominently
