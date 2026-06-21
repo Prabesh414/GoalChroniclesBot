@@ -87,18 +87,51 @@ function normalise(m) {
     };
 }
 
+// Competitions to query individually (free-tier /v4/matches caps results silently)
+// We query each active competition directly to get ALL matches for that date.
+const ACTIVE_COMPETITION_IDS = [
+    2000, // FIFA World Cup
+    2001, // UEFA Champions League
+    2018, // UEFA European Championship
+    2021, // Premier League
+    2002, // Bundesliga
+    2014, // La Liga
+    2019, // Serie A
+    2015, // Ligue 1
+    2114, // Copa América
+];
+
+async function fetchMatchesForDate(dateStr) {
+    const allMatches = [];
+    for (const compId of ACTIVE_COMPETITION_IDS) {
+        try {
+            const res = await axios.get(
+                `${BASE_URL}/competitions/${compId}/matches?dateFrom=${dateStr}&dateTo=${dateStr}`,
+                { headers: HEADERS }
+            );
+            const matches = (res.data.matches ?? []).map(normalise);
+            if (matches.length > 0) {
+                console.log(`   [${compId}] ${res.data.competition?.name ?? compId}: ${matches.length} match(es)`);
+            }
+            allMatches.push(...matches);
+        } catch (e) {
+            // 404 = no matches that day for this comp, or not subscribed — skip silently
+            if (e.response?.status !== 404) {
+                console.warn(`   ⚠️  Competition ${compId} error: ${e.response?.status ?? e.message}`);
+            }
+        }
+        // Respect free-tier rate limit (10 req/min)
+        await new Promise(r => setTimeout(r, 700));
+    }
+    return allMatches;
+}
+
 // ─── Fetch today's (and optionally yesterday's) matches ─────────────────────
 export async function getTodayFixtures() {
     const todayUTC = new Date().toISOString().split("T")[0];
     console.log(`📆 Querying fixtures for UTC date: ${todayUTC}`);
 
-    // football-data.org /v4/matches returns only your subscribed competitions
-    const response = await axios.get(
-        `${BASE_URL}/matches?dateFrom=${todayUTC}&dateTo=${todayUTC}`,
-        { headers: HEADERS }
-    );
-
-    const matches = (response.data.matches ?? []).map(normalise);
+    const matches = await fetchMatchesForDate(todayUTC);
     console.log(`   API returned ${matches.length} total fixtures`);
 
     // In early UTC hours also pull yesterday's finished matches
@@ -109,11 +142,7 @@ export async function getTodayFixtures() {
         const yesterdayUTC = yd.toISOString().split("T")[0];
         console.log(`🌙 Early UTC hours — also checking yesterday (${yesterdayUTC}) for late finishers...`);
 
-        const ydRes = await axios.get(
-            `${BASE_URL}/matches?dateFrom=${yesterdayUTC}&dateTo=${yesterdayUTC}`,
-            { headers: HEADERS }
-        );
-        const ydMatches = (ydRes.data.matches ?? []).map(normalise);
+        const ydMatches = await fetchMatchesForDate(yesterdayUTC);
         console.log(`   Yesterday returned ${ydMatches.length} total fixtures`);
 
         const finishedYesterday = ydMatches.filter(m =>

@@ -71,26 +71,14 @@ export async function generateNewsPoster(newsItem) {
         }
     } catch (e) {}
 
-    // LETS DISCUSS THIS text
+    // Shadow setup for headline
     ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
     ctx.shadowBlur = 15;
-    ctx.fillStyle = "#fbbf24"; // Gold
-    ctx.font = "bold 55px 'Arial Black', Impact, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("LETS DISCUSS THIS!", width / 2, 400);
-
-    // Divider line
-    ctx.strokeStyle = "#fbbf24";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(300, 440);
-    ctx.lineTo(width - 300, 440);
-    ctx.stroke();
 
     // The Headline
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 65px 'Arial Black', Impact, sans-serif";
-    const nextY = wrapTextCenter(ctx, newsItem.title.toUpperCase(), width / 2, 530, 900, 80);
+    const nextY = wrapTextCenter(ctx, newsItem.title.toUpperCase(), width / 2, 420, 900, 80);
 
     // The Summary / Snippet
     if (newsItem.summary) {
