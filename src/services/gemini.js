@@ -5,15 +5,70 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-export async function generateCaption(match) {
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" }); 
+// ─── Model fallback chain ─────────────────────────────────────────────────────
+// If a model's free-tier quota is exhausted (429), we try the next one.
+const MODEL_CHAIN = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+];
 
-    const isEnded = match.fixture.status.short === "FT" || match.fixture.status.short === "AET" || match.fixture.status.short === "PEN";
-    const score = isEnded ? `${match.goals.home} - ${match.goals.away}` : "Upcoming";
+/**
+ * Generate content with automatic model fallback + per-model retry-with-backoff.
+ * On 429 (quota exceeded), waits `retryDelay` seconds then tries once more.
+ * If still failing, moves to the next model in the chain.
+ */
+async function generateWithFallback(prompt) {
+    for (const modelName of MODEL_CHAIN) {
+        const model = genAI.getGenerativeModel({ model: modelName });
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                const result = await model.generateContent(prompt);
+                if (attempt > 1 || modelName !== MODEL_CHAIN[0]) {
+                    console.log(`✅ Gemini responded using: ${modelName}`);
+                }
+                return result.response.text();
+            } catch (e) {
+                if (e.status === 429) {
+                    // Parse the retryDelay from the error details if available
+                    let waitSec = 35;
+                    const retryInfo = e.errorDetails?.find(d =>
+                        d["@type"] === "type.googleapis.com/google.rpc.RetryInfo"
+                    );
+                    if (retryInfo?.retryDelay) {
+                        waitSec = parseInt(retryInfo.retryDelay) + 2;
+                    }
+
+                    if (attempt === 1) {
+                        console.warn(`⏳ [${modelName}] Quota hit — waiting ${waitSec}s before retry...`);
+                        await new Promise(r => setTimeout(r, waitSec * 1000));
+                    } else {
+                        console.warn(`⚠️  [${modelName}] Quota still exhausted — trying next model...`);
+                    }
+                } else {
+                    // Non-quota error — don't retry this model
+                    console.error(`❌ [${modelName}] Gemini error (non-quota):`, e.message);
+                    break;
+                }
+            }
+        }
+    }
+
+    // All models failed
+    throw new Error("All Gemini models exhausted or failed. Check your API key quota.");
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+export async function generateCaption(match) {
+    const isEnded = match.fixture.status.short === "FT"
+        || match.fixture.status.short === "AET"
+        || match.fixture.status.short === "PEN";
 
     const news = await getLatestFootballNews(3);
-    const newsText = news.length > 0 
-        ? `\nLatest Football News Context (mention casually if relevant to the teams):\n${news.map(n => `- ${n.title}`).join('\n')}` 
+    const newsText = news.length > 0
+        ? `\nLatest Football News Context (mention casually if relevant to the teams):\n${news.map(n => `- ${n.title}`).join('\n')}`
         : "";
 
     const prompt = `
@@ -39,12 +94,10 @@ Rules:
 - NO multiple versions
 `;
 
-    const result = await model.generateContent(prompt);
-    return result.response.text();
+    return generateWithFallback(prompt);
 }
 
 export async function generateNewsCaption(newsItem) {
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" }); 
     const prompt = `
 You are a football social media expert.
 Write a very short, engaging Instagram caption for this breaking news.
@@ -58,13 +111,13 @@ Rules:
 - Add emojis
 - NO options or explanations
 `;
-    const result = await model.generateContent(prompt);
-    return result.response.text();
+    return generateWithFallback(prompt);
 }
 
 export async function generatePosterText(match) {
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" }); 
-    const isEnded = match.fixture.status.short === "FT" || match.fixture.status.short === "AET" || match.fixture.status.short === "PEN";
+    const isEnded = match.fixture.status.short === "FT"
+        || match.fixture.status.short === "AET"
+        || match.fixture.status.short === "PEN";
 
     const prompt = isEnded ? `
 You are a football expert. Write a very short match analysis (max 2 sentences) for the match between ${match.teams.home.name} and ${match.teams.away.name} which ended ${match.goals.home}-${match.goals.away}.
@@ -77,10 +130,9 @@ DO NOT include any hashtags.
 `;
 
     try {
-        const result = await model.generateContent(prompt);
-        return result.response.text().trim();
+        return (await generateWithFallback(prompt)).trim();
     } catch (e) {
-        console.error("Error generating poster text:", e);
+        console.error("Error generating poster text:", e.message);
         return "";
     }
 }

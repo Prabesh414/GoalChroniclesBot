@@ -1,4 +1,5 @@
 import { createCanvas, loadImage } from "canvas";
+import sharp from "sharp";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -14,6 +15,29 @@ const LOCAL_BACKGROUNDS = [
     path.join(__dirname, "..", "bg-4.jpg"), // stadium wide panorama
     path.join(__dirname, "..", "bg-5.jpg"), // pitch lines bird's eye
 ];
+
+/**
+ * Load a logo from a URL, auto-converting SVG → PNG via sharp.
+ * football-data.org returns .svg crests which node-canvas cannot render.
+ */
+async function loadLogo(url) {
+    if (!url) throw new Error("No logo URL provided");
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    const contentType = res.headers.get("content-type") ?? "";
+    const isSvg = url.includes(".svg") || contentType.includes("svg");
+    if (isSvg) {
+        // Rasterise SVG to a 300×300 transparent PNG
+        const png = await sharp(buf)
+            .resize(300, 300, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .png()
+            .toBuffer();
+        return loadImage(png);
+    }
+    return loadImage(buf);
+}
+
 export async function generatePoster(match, caption, style, aiText = "") {
     const width = 1080;
     const height = 1350; // 4:5 ratio for mobile/Instagram
@@ -130,44 +154,55 @@ export async function generatePoster(match, caption, style, aiText = "") {
     ctx.fillText(dateString.toUpperCase(), width / 2, 360);
 
     // Team Logos & Names
+    const homeX = width / 2 - 280;
+    const awayX = width / 2 + 280;
+    const logosY = 460;
+    const logoSize = 250;
+
+    // Draw logos — SVGs are auto-converted to PNG via sharp
     try {
-        const homeLogo = await loadImage(match.teams.home.logo);
-        const awayLogo = await loadImage(match.teams.away.logo);
-        const logoSize = 250; // slightly larger logos
-
-        const homeX = width / 2 - 280;
-        const awayX = width / 2 + 280;
-        const logosY = 460;
-
-        // Draw logos with glow/shadow
+        const [homeLogo, awayLogo] = await Promise.all([
+            loadLogo(match.teams.home.logo),
+            loadLogo(match.teams.away.logo),
+        ]);
         ctx.shadowColor = "rgba(255, 255, 255, 0.2)";
         ctx.shadowBlur = 30;
         ctx.drawImage(homeLogo, homeX - logoSize / 2, logosY, logoSize, logoSize);
         ctx.drawImage(awayLogo, awayX - logoSize / 2, logosY, logoSize, logoSize);
-
-        // Reset shadow for text
-        ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-        ctx.shadowBlur = 20;
-
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "italic bold 80px 'Arial Black', Impact, sans-serif";
-
-        if (isEnded) {
-            ctx.fillStyle = "#fbbf24";
-            ctx.fillText(`${match.goals.home} - ${match.goals.away}`, width / 2, logosY + 130);
-        } else {
-            ctx.fillText("VS", width / 2, logosY + 130);
-        }
-
-        // Team Names Centered Under Logos
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 35px 'Arial Black', Impact, sans-serif";
-        wrapTextCenter(ctx, match.teams.home.name.toUpperCase(), homeX, logosY + 310, 400, 45);
-        wrapTextCenter(ctx, match.teams.away.name.toUpperCase(), awayX, logosY + 310, 400, 45);
-
+        console.log("✅ Team logos loaded.");
     } catch (e) {
-        console.error("Error loading logos:", e);
+        console.warn("⚠️  Logo load failed (drawing placeholders):", e.message);
+        // Draw circular placeholder badges instead
+        [[homeX, "#1a3a5c"], [awayX, "#3a1a1a"]].forEach(([cx, fill]) => {
+            ctx.beginPath();
+            ctx.arc(cx, logosY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
+            ctx.fillStyle = fill;
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.4)";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        });
     }
+
+    // Score / VS — always drawn regardless of logo success
+    ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+    ctx.shadowBlur = 20;
+    ctx.font = "italic bold 80px 'Arial Black', Impact, sans-serif";
+    if (isEnded) {
+        ctx.fillStyle = "#fbbf24";
+        const scoreHome = match.goals.home ?? match._raw?.score?.fullTime?.home ?? "?";
+        const scoreAway = match.goals.away ?? match._raw?.score?.fullTime?.away ?? "?";
+        ctx.fillText(`${scoreHome} - ${scoreAway}`, width / 2, logosY + 130);
+    } else {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("VS", width / 2, logosY + 130);
+    }
+
+    // Team Names — always drawn
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 35px 'Arial Black', Impact, sans-serif";
+    wrapTextCenter(ctx, match.teams.home.name.toUpperCase(), homeX, logosY + 310, 400, 45);
+    wrapTextCenter(ctx, match.teams.away.name.toUpperCase(), awayX, logosY + 310, 400, 45);
 
     // Match Time & League
     const nptTime = matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kathmandu' });
