@@ -98,19 +98,21 @@ async function runBot() {
     let postedNews = false;
 
     for (const news of latestNewsList) {
-        // Create a unique ID for the news using a hash of the article link
-        // This is much more stable than the title, which editors often tweak after publishing
-        const newsId = `news_${Buffer.from(news.link).toString('base64')}`;
-        
+        // Create a unique ID for the news using the article ID from the link.
+        // SkySports appends updated slugs to URLs which can cause duplicates if we hash the whole link.
+        const idMatch = news.link.match(/(\d{6,})/g);
+        const stableId = idMatch ? idMatch[idMatch.length - 1] : Buffer.from(news.link).toString('base64');
+        const newsId = `news_${stableId}`;
+
         if (!publishedIDs.includes(newsId)) {
             console.log(`🔥 New breaking news found! Generating News Poster...`);
             try {
                 const caption = await generateNewsCaption(news);
                 const posterPath = await generateNewsPoster(news);
-                
+
                 console.log("📝 News Caption:", caption);
                 console.log("📸 News Poster:", posterPath);
-                
+
                 const success = await publishToSocialMedia(posterPath, caption);
                 if (success) {
                     markAsPublished(newsId);
