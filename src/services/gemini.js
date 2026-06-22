@@ -11,6 +11,11 @@ const MODEL_CHAIN = [
     "gemini-2.5-flash",
     "gemini-2.0-flash",
     "gemini-1.5-flash",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash-8b",
+    "gemini-1.0-pro",
+    "gemini-3.5-lite",
+    "gemini-3.5-flash"
 ];
 
 /**
@@ -20,7 +25,13 @@ const MODEL_CHAIN = [
  */
 async function generateWithFallback(prompt) {
     for (const modelName of MODEL_CHAIN) {
-        const model = genAI.getGenerativeModel({ model: modelName });
+        const model = genAI.getGenerativeModel({ 
+            model: modelName,
+            systemInstruction: "You are a professional football sports journalist and social media manager. Your answers must ONLY be about football. Never output weird, nonsensical, or random chains of words. Keep the text extremely coherent, factual, and strictly related to the football context provided.",
+            generationConfig: {
+                temperature: 0.3,
+            }
+        });
 
         for (let attempt = 1; attempt <= 2; attempt++) {
             try {

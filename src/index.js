@@ -98,9 +98,15 @@ async function runBot() {
     let postedNews = false;
 
     for (const news of latestNewsList) {
-        // Create a unique ID for the news using the article title.
-        // URLs can update with slugs, causing duplicate posts.
-        const stableId = Buffer.from(news.title).toString('base64');
+        // Create a unique ID for the news using the article ID from the URL.
+        // Titles and URL slugs can update, causing duplicate posts, but the numeric ID is stable.
+        let stableId;
+        const idMatch = news.link.match(/\/(\d{6,8})(?:\/|$)/);
+        if (idMatch) {
+            stableId = idMatch[1];
+        } else {
+            stableId = Buffer.from(news.title).toString('base64');
+        }
         const newsId = `news_${stableId}`;
 
         if (!publishedIDs.includes(newsId)) {
