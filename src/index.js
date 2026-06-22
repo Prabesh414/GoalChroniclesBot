@@ -94,18 +94,19 @@ async function runBot() {
 
     // 3. News Poster Logic (Post 1 latest news per day/run if new)
     console.log("\n📰 Checking for latest Football News...");
-    const latestNewsList = await getLatestFootballNews(1);
-    if (latestNewsList.length > 0) {
-        const topNews = latestNewsList[0];
+    const latestNewsList = await getLatestFootballNews(5);
+    let postedNews = false;
+
+    for (const news of latestNewsList) {
         // Create a unique ID for the news using a hash of the article link
         // This is much more stable than the title, which editors often tweak after publishing
-        const newsId = `news_${Buffer.from(topNews.link).toString('base64').substring(0, 15)}`;
+        const newsId = `news_${Buffer.from(news.link).toString('base64')}`;
         
         if (!publishedIDs.includes(newsId)) {
             console.log(`🔥 New breaking news found! Generating News Poster...`);
             try {
-                const caption = await generateNewsCaption(topNews);
-                const posterPath = await generateNewsPoster(topNews);
+                const caption = await generateNewsCaption(news);
+                const posterPath = await generateNewsPoster(news);
                 
                 console.log("📝 News Caption:", caption);
                 console.log("📸 News Poster:", posterPath);
@@ -113,13 +114,17 @@ async function runBot() {
                 const success = await publishToSocialMedia(posterPath, caption);
                 if (success) {
                     markAsPublished(newsId);
+                    postedNews = true;
+                    break; // Only post 1 news per run
                 }
             } catch (e) {
                 console.error("❌ Error generating/publishing news:", e);
             }
-        } else {
-            console.log(`⏩ Top news already published today.`);
         }
+    }
+
+    if (!postedNews) {
+        console.log(`⏩ Top news already published today.`);
     }
 }
 
