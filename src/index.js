@@ -58,8 +58,8 @@ async function runBot() {
         if (status === "NS" || status === "TBD") {
             const timeUntilMatch = matchTime - now;
 
-            // If match is starting within 40 minutes and is in the future
-            if (timeUntilMatch > 0 && timeUntilMatch <= HYPE_THRESHOLD_MS) {
+            // If match is in the future (we already fetched today's matches)
+            if (timeUntilMatch > 0) {
                 const matchId = `hype_${match.fixture.id}`;
                 if (!publishedIDs.includes(matchId)) {
                     console.log(`🔥 Match starts soon! Generating Hype Poster...`);
@@ -68,7 +68,7 @@ async function runBot() {
                     console.log(`⏩ Hype poster already published.`);
                 }
             } else {
-                console.log(`⏳ Match is too far in the future or already started. (Time diff: Math.round(timeUntilMatch / 60000) mins)`);
+                console.log(`⏳ Match has already started. (Time diff: Math.round(timeUntilMatch / 60000) mins)`);
             }
         }
 
@@ -98,10 +98,9 @@ async function runBot() {
     let postedNews = false;
 
     for (const news of latestNewsList) {
-        // Create a unique ID for the news using the article ID from the link.
-        // SkySports appends updated slugs to URLs which can cause duplicates if we hash the whole link.
-        const idMatch = news.link.match(/(\d{6,})/g);
-        const stableId = idMatch ? idMatch[idMatch.length - 1] : Buffer.from(news.link).toString('base64');
+        // Create a unique ID for the news using the article title.
+        // URLs can update with slugs, causing duplicate posts.
+        const stableId = Buffer.from(news.title).toString('base64');
         const newsId = `news_${stableId}`;
 
         if (!publishedIDs.includes(newsId)) {
@@ -133,8 +132,8 @@ async function runBot() {
 async function generateAndPublish(match, matchId) {
     try {
         const caption = await generateCaption(match);
-        const style = await generatePosterStyle(match, caption);
         const aiText = await generatePosterText(match);
+        const style = {}; // Removed generatePosterStyle to save API quota and prevent 429 errors
         const posterPath = await generatePoster(match, caption, style, aiText);
 
         console.log("🎨 Style:", style);
