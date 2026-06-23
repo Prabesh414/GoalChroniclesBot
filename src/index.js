@@ -99,7 +99,7 @@ async function runBot() {
 
     // 3. News Poster Logic (Post 1 latest news per day/run if new)
     console.log("\n📰 Checking for latest Football News...");
-    const latestNewsList = await getLatestFootballNews(5);
+    const latestNewsList = await getLatestFootballNews(15);
     let postedNews = false;
 
     for (const news of latestNewsList) {
