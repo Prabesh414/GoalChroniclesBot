@@ -57,9 +57,14 @@ async function runBot() {
         // 1. Hype Poster Logic (Upcoming)
         if (status === "NS" || status === "TBD") {
             const timeUntilMatch = matchTime - now;
+            const resultId = `result_${match.fixture.id}`;
 
-            // If match is in the future (we already fetched today's matches)
-            if (timeUntilMatch > 0) {
+            // Safety guard: never post a hype poster if the result is already logged
+            if (publishedIDs.includes(resultId)) {
+                console.log(`⏩ Result already published for this match — skipping hype poster.`);
+            }
+            // Only post hype if the match is genuinely in the future (positive time buffer)
+            else if (timeUntilMatch > 0) {
                 const matchId = `hype_${match.fixture.id}`;
                 if (!publishedIDs.includes(matchId)) {
                     console.log(`🔥 Match starts soon! Generating Hype Poster...`);
@@ -68,7 +73,7 @@ async function runBot() {
                     console.log(`⏩ Hype poster already published.`);
                 }
             } else {
-                console.log(`⏳ Match has already started. (Time diff: Math.round(timeUntilMatch / 60000) mins)`);
+                console.log(`⏳ Match time has passed but status not yet updated by API. Skipping hype poster.`);
             }
         }
 
