@@ -139,6 +139,13 @@ async function generateAndPublish(match, matchId) {
     try {
         const caption = await generateCaption(match);
         const aiText = await generatePosterText(match);
+        
+        // If this is a hype poster and we failed to get a Key Player, skip it to avoid the "general" fallback
+        if (matchId.startsWith("hype_") && !aiText) {
+            console.log("⚠️ Could not generate Key Player text. Skipping hype poster.");
+            return;
+        }
+
         const style = {}; // Removed generatePosterStyle to save API quota and prevent 429 errors
         const posterPath = await generatePoster(match, caption, style, aiText);
 

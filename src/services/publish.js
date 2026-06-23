@@ -24,7 +24,8 @@ export async function publishToSocialMedia(imagePath, caption) {
         console.log("🚀 Publishing to Facebook...");
         const form = new FormData();
         form.append("access_token", META_TOKEN);
-        form.append("caption", caption);
+        form.append("message", caption);
+        form.append("published", "true");
         form.append("source", fs.createReadStream(imagePath));
 
         const fbRes = await axios.post(
