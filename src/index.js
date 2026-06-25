@@ -44,8 +44,8 @@ async function runBot() {
     }
 
     const now = Date.now();
-    // We consider "upcoming soon" if the match starts in less than 40 mins
-    const HYPE_THRESHOLD_MS = 40 * 60 * 1000;
+    // We consider "upcoming soon" if the match starts in less than 2 hours
+    const HYPE_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 
     for (const match of filtered) {
         const status = match.fixture.status.short;
@@ -63,8 +63,8 @@ async function runBot() {
             if (publishedIDs.includes(resultId)) {
                 console.log(`⏩ Result already published for this match — skipping hype poster.`);
             }
-            // Only post hype if the match is genuinely in the future (positive time buffer)
-            else if (timeUntilMatch > 0) {
+            // Only post hype if the match is genuinely in the future (positive time buffer) and within 2 hours
+            else if (timeUntilMatch > 0 && timeUntilMatch <= HYPE_THRESHOLD_MS) {
                 const matchId = `hype_${match.fixture.id}`;
                 if (!publishedIDs.includes(matchId)) {
                     console.log(`🔥 Match starts soon! Generating Hype Poster...`);
@@ -72,6 +72,9 @@ async function runBot() {
                 } else {
                     console.log(`⏩ Hype poster already published.`);
                 }
+            } else if (timeUntilMatch > HYPE_THRESHOLD_MS) {
+                const hoursAway = (timeUntilMatch / (1000 * 60 * 60)).toFixed(1);
+                console.log(`⏳ Match is still ${hoursAway} hours away. Skipping hype poster for now.`);
             } else {
                 console.log(`⏳ Match time has passed but status not yet updated by API. Skipping hype poster.`);
             }

@@ -9,13 +9,18 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // If a model's free-tier quota is exhausted (429), we try the next one.
 const MODEL_CHAIN = [
     "gemini-2.5-flash",
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-3.0-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-pro",
     "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
     "gemini-1.5-flash",
     "gemini-1.5-pro",
     "gemini-1.5-flash-8b",
     "gemini-1.0-pro",
-    "gemini-3.5-lite",
-    "gemini-3.5-flash"
+    "gemini-3.1-pro"
 ];
 
 /**
@@ -24,8 +29,11 @@ const MODEL_CHAIN = [
  * If still failing, moves to the next model in the chain.
  */
 async function generateWithFallback(prompt) {
-    for (const modelName of MODEL_CHAIN) {
-        const model = genAI.getGenerativeModel({ 
+    // Shuffle the models to distribute load randomly across available models
+    const shuffledModels = [...MODEL_CHAIN].sort(() => Math.random() - 0.5);
+
+    for (const modelName of shuffledModels) {
+        const model = genAI.getGenerativeModel({
             model: modelName,
             systemInstruction: "You are a professional football sports journalist and social media manager. Your answers must ONLY be about football. Never output weird, nonsensical, or random chains of words. Keep the text extremely coherent, factual, and strictly related to the football context provided.",
             generationConfig: {
