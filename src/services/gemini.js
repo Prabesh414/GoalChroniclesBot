@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { getLatestFootballNews } from "../api/news.js";
 dotenv.config();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const apiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_BACKUP_API_KEY].filter(Boolean);
 
 // ─── Model fallback chain ─────────────────────────────────────────────────────
 // If a model's free-tier quota is exhausted (429), we try the next one.
@@ -22,55 +22,64 @@ const MODEL_CHAIN = [
  * Generate content with automatic model fallback + per-model retry-with-backoff.
  * On 429 (quota exceeded), waits `retryDelay` seconds then tries once more.
  * If still failing, moves to the next model in the chain.
+ * If all models fail on the first key, it falls back to the backup key.
  */
 async function generateWithFallback(prompt) {
     // Shuffle the models to distribute load randomly across available models
     const shuffledModels = [...MODEL_CHAIN].sort(() => Math.random() - 0.5);
 
-    for (const modelName of shuffledModels) {
-        const model = genAI.getGenerativeModel({
-            model: modelName,
-            systemInstruction: "You are a professional football sports journalist and social media manager. Your answers must ONLY be about football. Never output weird, nonsensical, or random chains of words. Keep the text extremely coherent, factual, and strictly related to the football context provided.",
-            generationConfig: {
-                temperature: 0.3,
-            }
-        });
+    for (let keyIndex = 0; keyIndex < apiKeys.length; keyIndex++) {
+        const apiKey = apiKeys[keyIndex];
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const keyName = keyIndex === 0 ? "Primary Key" : "Backup Key";
 
-        for (let attempt = 1; attempt <= 2; attempt++) {
-            try {
-                const result = await model.generateContent(prompt);
-                if (attempt > 1 || modelName !== MODEL_CHAIN[0]) {
-                    console.log(`✅ Gemini responded using: ${modelName}`);
+        for (const modelName of shuffledModels) {
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                systemInstruction: "You are a professional football sports journalist and social media manager. Your answers must ONLY be about football. Never output weird, nonsensical, or random chains of words. Keep the text extremely coherent, factual, and strictly related to the football context provided.",
+                generationConfig: {
+                    temperature: 0.3,
                 }
-                return result.response.text();
-            } catch (e) {
-                if (e.status === 429) {
-                    // Parse the retryDelay from the error details if available
-                    let waitSec = 35;
-                    const retryInfo = e.errorDetails?.find(d =>
-                        d["@type"] === "type.googleapis.com/google.rpc.RetryInfo"
-                    );
-                    if (retryInfo?.retryDelay) {
-                        waitSec = parseInt(retryInfo.retryDelay) + 2;
-                    }
+            });
 
-                    if (attempt === 1) {
-                        console.warn(`⏳ [${modelName}] Quota hit — waiting ${waitSec}s before retry...`);
-                        await new Promise(r => setTimeout(r, waitSec * 1000));
+            for (let attempt = 1; attempt <= 2; attempt++) {
+                try {
+                    const result = await model.generateContent(prompt);
+                    console.log(`✅ Gemini responded using: ${modelName} (${keyName})`);
+                    return result.response.text();
+                } catch (e) {
+                    if (e.status === 429) {
+                        // Parse the retryDelay from the error details if available
+                        let waitSec = 35;
+                        const retryInfo = e.errorDetails?.find(d =>
+                            d["@type"] === "type.googleapis.com/google.rpc.RetryInfo"
+                        );
+                        if (retryInfo?.retryDelay) {
+                            waitSec = parseInt(retryInfo.retryDelay) + 2;
+                        }
+
+                        if (attempt === 1) {
+                            console.warn(`⏳ [${modelName}] (${keyName}) Quota hit — waiting ${waitSec}s before retry...`);
+                            await new Promise(r => setTimeout(r, waitSec * 1000));
+                        } else {
+                            console.warn(`⚠️  [${modelName}] (${keyName}) Quota still exhausted — trying next model...`);
+                        }
                     } else {
-                        console.warn(`⚠️  [${modelName}] Quota still exhausted — trying next model...`);
+                        // Non-quota error — don't retry this model
+                        console.error(`❌ [${modelName}] (${keyName}) Gemini error (non-quota):`, e.message);
+                        break;
                     }
-                } else {
-                    // Non-quota error — don't retry this model
-                    console.error(`❌ [${modelName}] Gemini error (non-quota):`, e.message);
-                    break;
                 }
             }
         }
+        
+        if (keyIndex < apiKeys.length - 1) {
+            console.warn(`⚠️ All models exhausted on ${keyName}. Switching to next API key...`);
+        }
     }
 
-    // All models failed
-    throw new Error("All Gemini models exhausted or failed. Check your API key quota.");
+    // All models and keys failed
+    throw new Error("All Gemini models and API keys exhausted or failed. Check your API key quotas.");
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
