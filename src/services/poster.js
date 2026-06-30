@@ -187,13 +187,48 @@ export async function generatePoster(match, caption, style, aiText = "") {
     // Score / VS — always drawn regardless of logo success
     ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
     ctx.shadowBlur = 20;
-    ctx.font = "italic bold 80px 'Arial Black', Impact, sans-serif";
     if (isEnded) {
         ctx.fillStyle = "#fbbf24";
-        const scoreHome = match.goals.home ?? match._raw?.score?.fullTime?.home ?? "?";
-        const scoreAway = match.goals.away ?? match._raw?.score?.fullTime?.away ?? "?";
-        ctx.fillText(`${scoreHome} - ${scoreAway}`, width / 2, logosY + 130);
+        const rawScore = match._raw?.score || {};
+        const penHome = rawScore.penalties?.home;
+        const penAway = rawScore.penalties?.away;
+        
+        if (penHome !== undefined && penAway !== undefined && typeof penHome === "number") {
+            const scoreHome = match.goals.home ?? rawScore.fullTime?.home ?? "?";
+            const scoreAway = match.goals.away ?? rawScore.fullTime?.away ?? "?";
+            
+            const rtHome = rawScore.regularTime?.home;
+            const etHome = rawScore.extraTime?.home;
+            const rtAway = rawScore.regularTime?.away;
+            const etAway = rawScore.extraTime?.away;
+            
+            // Reconstruct exact scores to avoid API inaccuracies where penalties field is wrong
+            const ftHome = rtHome !== undefined ? rtHome + (etHome ?? 0) : (scoreHome !== "?" ? scoreHome - penHome : "?");
+            const ftAway = rtAway !== undefined ? rtAway + (etAway ?? 0) : (scoreAway !== "?" ? scoreAway - penAway : "?");
+            
+            // Actual penalty score = Total goals - (Regular Time + Extra Time)
+            const actualPenHome = (scoreHome !== "?" && rtHome !== undefined) ? scoreHome - ftHome : penHome;
+            const actualPenAway = (scoreAway !== "?" && rtAway !== undefined) ? scoreAway - ftAway : penAway;
+            
+            ctx.font = "italic bold 60px 'Arial Black', Impact, sans-serif";
+            ctx.fillText(`${ftHome} - ${ftAway}`, width / 2, logosY + 70);
+            
+            ctx.font = "bold 20px Arial, sans-serif";
+            ctx.fillText("FULL TIME", width / 2, logosY + 100);
+            
+            ctx.font = "italic bold 40px 'Arial Black', Impact, sans-serif";
+            ctx.fillText(`${actualPenHome} - ${actualPenAway}`, width / 2, logosY + 160);
+            
+            ctx.font = "bold 16px Arial, sans-serif";
+            ctx.fillText("PENALTIES", width / 2, logosY + 185);
+        } else {
+            ctx.font = "italic bold 80px 'Arial Black', Impact, sans-serif";
+            const scoreHome = match.goals.home ?? match._raw?.score?.fullTime?.home ?? "?";
+            const scoreAway = match.goals.away ?? match._raw?.score?.fullTime?.away ?? "?";
+            ctx.fillText(`${scoreHome} - ${scoreAway}`, width / 2, logosY + 130);
+        }
     } else {
+        ctx.font = "italic bold 80px 'Arial Black', Impact, sans-serif";
         ctx.fillStyle = "#ffffff";
         ctx.fillText("VS", width / 2, logosY + 130);
     }

@@ -90,9 +90,28 @@ export async function generateCaption(match) {
         || match.fixture.status.short === "PEN";
 
     const news = await getLatestFootballNews(3);
-    const newsText = news.length > 0
-        ? `\nLatest Football News Context (mention casually if relevant to the teams):\n${news.map(n => `- ${n.title}`).join('\n')}`
-        : "";
+    let scoreText = "";
+    if (isEnded) {
+        const rawScore = match._raw?.score || {};
+        if (match.fixture.status.short === "PEN" || rawScore.duration === "PENALTY_SHOOTOUT") {
+            const rtHome = rawScore.regularTime?.home ?? 0;
+            const etHome = rawScore.extraTime?.home ?? 0;
+            const rtAway = rawScore.regularTime?.away ?? 0;
+            const etAway = rawScore.extraTime?.away ?? 0;
+            const ftHome = rtHome + etHome;
+            const ftAway = rtAway + etAway;
+            
+            const scoreHome = match.goals.home ?? rawScore.fullTime?.home ?? ftHome;
+            const scoreAway = match.goals.away ?? rawScore.fullTime?.away ?? ftAway;
+            
+            const penHome = scoreHome - ftHome;
+            const penAway = scoreAway - ftAway;
+            
+            scoreText = `Final Score: ${match.teams.home.name} ${ftHome} - ${ftAway} ${match.teams.away.name} (Penalties: ${penHome}-${penAway})`;
+        } else {
+            scoreText = `Final Score: ${match.teams.home.name} ${match.goals.home} - ${match.goals.away} ${match.teams.away.name}`;
+        }
+    }
 
     const prompt = `
 You are a football social media expert.
@@ -103,7 +122,7 @@ Match:
 ${match.teams.home.name} vs ${match.teams.away.name}
 League: ${match.league.name}
 Status: ${isEnded ? "Match Finished" : "Upcoming Match"}
-${isEnded ? `Final Score: ${match.teams.home.name} ${match.goals.home} - ${match.goals.away} ${match.teams.away.name}` : ""}
+${scoreText}
 ${newsText}
 
 Rules:
