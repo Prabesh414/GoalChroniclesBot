@@ -153,6 +153,13 @@ export async function generatePoster(match, caption, style, aiText = "") {
     ctx.letterSpacing = "2px"; // Only works in some canvas versions, safe to leave
     ctx.fillText(dateString.toUpperCase(), width / 2, 360);
 
+    const venue = match._raw?.venue;
+    if (venue) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.font = "bold 20px Arial, sans-serif";
+        ctx.fillText(`📍 ${venue.toUpperCase()}`, width / 2, 400);
+    }
+
     // Team Logos & Names
     const homeX = width / 2 - 280;
     const awayX = width / 2 + 280;
