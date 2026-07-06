@@ -168,10 +168,11 @@ export async function generatePoster(match, caption, style, aiText = "") {
 
     // Draw logos — SVGs are auto-converted to PNG via sharp
     try {
-        const [homeLogo, awayLogo] = await Promise.all([
-            loadLogo(match.teams.home.logo),
-            loadLogo(match.teams.away.logo),
-        ]);
+        const pHome = loadLogo(match.teams.home.logo).catch(e => { throw e; });
+        const pAway = loadLogo(match.teams.away.logo).catch(e => { throw e; });
+        pHome.catch(() => {}); // Prevent unhandled rejection if the other fails first
+        pAway.catch(() => {});
+        const [homeLogo, awayLogo] = await Promise.all([pHome, pAway]);
         ctx.shadowColor = "rgba(255, 255, 255, 0.2)";
         ctx.shadowBlur = 30;
         ctx.drawImage(homeLogo, homeX - logoSize / 2, logosY, logoSize, logoSize);

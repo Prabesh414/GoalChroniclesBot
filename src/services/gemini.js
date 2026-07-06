@@ -90,6 +90,9 @@ export async function generateCaption(match) {
         || match.fixture.status.short === "PEN";
 
     const news = await getLatestFootballNews(3);
+    const newsText = news && news.length > 0 
+        ? `Recent Football News to consider incorporating if relevant:\n${news.map(n => `- ${n.title}`).join('\n')}` 
+        : "";
     let scoreText = "";
     if (isEnded) {
         const rawScore = match._raw?.score || {};

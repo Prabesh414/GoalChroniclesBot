@@ -14,11 +14,15 @@ const fixtureId = 537418; // Known match ID for a penalty shootout
             console.error("Match not found or API error.");
             return;
         }
+        
+        // Inject a fake venue just so we can test the visual layout, 
+        // since the API returned null for this specific match!
+        if (!fullMatchDetails._raw.venue) {
+            console.log("API returned null for venue. Injecting 'Wembley Stadium' for visual testing...");
+            fullMatchDetails._raw.venue = "Wembley Stadium";
+        }
 
-        console.log("Status:", fullMatchDetails.fixture.status.short);
-        console.log("Raw API Score Object:", JSON.stringify(fullMatchDetails._raw.score, null, 2));
-
-        console.log("Generating poster with real API data...");
+        console.log("Generating poster with real API data (and test venue)...");
         const filePath = await generatePoster(fullMatchDetails, "Netherlands vs Morocco match finished in penalties! 🤯🇲🇦", "matchday");
         console.log("Poster generated at:", filePath);
     } catch (err) {
