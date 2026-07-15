@@ -72,7 +72,7 @@ async function generateWithFallback(prompt) {
                 }
             }
         }
-        
+
         if (keyIndex < apiKeys.length - 1) {
             console.warn(`⚠️ All models exhausted on ${keyName}. Switching to next API key...`);
         }
@@ -90,8 +90,8 @@ export async function generateCaption(match) {
         || match.fixture.status.short === "PEN";
 
     const news = await getLatestFootballNews(3);
-    const newsText = news && news.length > 0 
-        ? `Recent Football News to consider incorporating if relevant:\n${news.map(n => `- ${n.title}`).join('\n')}` 
+    const newsText = news && news.length > 0
+        ? `Recent Football News to consider incorporating if relevant:\n${news.map(n => `- ${n.title}`).join('\n')}`
         : "";
     let scoreText = "";
     if (isEnded) {
@@ -103,13 +103,13 @@ export async function generateCaption(match) {
             const etAway = rawScore.extraTime?.away ?? 0;
             const ftHome = rtHome + etHome;
             const ftAway = rtAway + etAway;
-            
+
             const scoreHome = match.goals.home ?? rawScore.fullTime?.home ?? ftHome;
             const scoreAway = match.goals.away ?? rawScore.fullTime?.away ?? ftAway;
-            
+
             const penHome = scoreHome - ftHome;
             const penAway = scoreAway - ftAway;
-            
+
             scoreText = `Final Score: ${match.teams.home.name} ${ftHome} - ${ftAway} ${match.teams.away.name} (Penalties: ${penHome}-${penAway})`;
         } else {
             scoreText = `Final Score: ${match.teams.home.name} ${match.goals.home} - ${match.goals.away} ${match.teams.away.name}`;
@@ -165,8 +165,10 @@ export async function generatePosterText(match) {
         || match.fixture.status.short === "PEN";
 
     const prompt = isEnded ? `
-You are a football expert. Write a very short match analysis (max 2 sentences) for the match between ${match.teams.home.name} and ${match.teams.away.name} which ended ${match.goals.home}-${match.goals.away}.
-Focus on the performance, a key moment, or the outcome. Keep it engaging.
+You are a football expert. Write a very short, general match analysis (max 2 sentences) based ONLY on the final score for the match between ${match.teams.home.name} and ${match.teams.away.name} which ended ${match.goals.home}-${match.goals.away}.
+DO NOT mention any specific players, as you do not have the real match data for them.
+DO NOT invent any statistics or events like hat-tricks or red cards.
+Focus ONLY on a general statement about the outcome and the scoreline. Keep it engaging.
 DO NOT include any hashtags.
 ` : `
 You are a football expert. Suggest ONE key player to watch in the upcoming match between ${match.teams.home.name} and ${match.teams.away.name}.
