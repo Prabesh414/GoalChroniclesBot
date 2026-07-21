@@ -165,7 +165,7 @@ export async function generatePosterText(match) {
         || match.fixture.status.short === "PEN";
 
     const prompt = isEnded ? `
-You are a football expert. Write a very short, general match analysis (max 2 sentences) based ONLY on the final score for the match between ${match.teams.home.name} and ${match.teams.away.name} which ended ${match.goals.home}-${match.goals.away}.
+You are a football expert,a good one. Write a very short, general match analysis (max 2 sentences) based ONLY on the final score for the match between ${match.teams.home.name} and ${match.teams.away.name} which ended ${match.goals.home}-${match.goals.away}.
 DO NOT mention any specific players, as you do not have the real match data for them.
 DO NOT invent any statistics or events like hat-tricks or red cards.
 Focus ONLY on a general statement about the outcome and the scoreline. Keep it engaging.
