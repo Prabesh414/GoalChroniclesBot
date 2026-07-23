@@ -40,63 +40,62 @@ async function runBot() {
 
     if (filtered.length === 0) {
         console.log("❌ No relevant matches found today.");
-        return;
-    }
+    } else {
+        const now = Date.now();
+        // We consider "upcoming soon" if the match starts in less than 2 hours
+        const HYPE_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 
-    const now = Date.now();
-    // We consider "upcoming soon" if the match starts in less than 2 hours
-    const HYPE_THRESHOLD_MS = 2 * 60 * 60 * 1000;
+        for (const match of filtered) {
+            const status = match.fixture.status.short;
+            const matchTime = new Date(match.fixture.date).getTime();
 
-    for (const match of filtered) {
-        const status = match.fixture.status.short;
-        const matchTime = new Date(match.fixture.date).getTime();
+            console.log(`\n========================================`);
+            console.log(`⚽ ${match.teams.home.name} VS ${match.teams.away.name} (${status})`);
 
-        console.log(`\n========================================`);
-        console.log(`⚽ ${match.teams.home.name} VS ${match.teams.away.name} (${status})`);
+            // 1. Hype Poster Logic (Upcoming)
+            if (status === "NS" || status === "TBD") {
+                const timeUntilMatch = matchTime - now;
+                const resultId = `result_${match.fixture.id}`;
 
-        // 1. Hype Poster Logic (Upcoming)
-        if (status === "NS" || status === "TBD") {
-            const timeUntilMatch = matchTime - now;
-            const resultId = `result_${match.fixture.id}`;
-
-            // Safety guard: never post a hype poster if the result is already logged
-            if (publishedIDs.includes(resultId)) {
-                console.log(`⏩ Result already published for this match — skipping hype poster.`);
-            }
-            // Only post hype if the match is genuinely in the future (positive time buffer) and within 2 hours
-            else if (timeUntilMatch > 0 && timeUntilMatch <= HYPE_THRESHOLD_MS) {
-                const matchId = `hype_${match.fixture.id}`;
-                if (!publishedIDs.includes(matchId)) {
-                    console.log(`🔥 Match starts soon! Generating Hype Poster...`);
-                    await generateAndPublish(match, matchId);
-                } else {
-                    console.log(`⏩ Hype poster already published.`);
+                // Safety guard: never post a hype poster if the result is already logged
+                if (publishedIDs.includes(resultId)) {
+                    console.log(`⏩ Result already published for this match — skipping hype poster.`);
                 }
-            } else if (timeUntilMatch > HYPE_THRESHOLD_MS) {
-                const hoursAway = (timeUntilMatch / (1000 * 60 * 60)).toFixed(1);
-                console.log(`⏳ Match is still ${hoursAway} hours away. Skipping hype poster for now.`);
-            } else {
-                console.log(`⏳ Match time has passed but status not yet updated by API. Skipping hype poster.`);
+                // Only post hype if the match is genuinely in the future (positive time buffer) and within 2 hours
+                else if (timeUntilMatch > 0 && timeUntilMatch <= HYPE_THRESHOLD_MS) {
+                    const matchId = `hype_${match.fixture.id}`;
+                    if (!publishedIDs.includes(matchId)) {
+                        console.log(`🔥 Match starts soon! Generating Hype Poster...`);
+                        await generateAndPublish(match, matchId);
+                    } else {
+                        console.log(`⏩ Hype poster already published.`);
+                    }
+                } else if (timeUntilMatch > HYPE_THRESHOLD_MS) {
+                    const hoursAway = (timeUntilMatch / (1000 * 60 * 60)).toFixed(1);
+                    console.log(`⏳ Match is still ${hoursAway} hours away. Skipping hype poster for now.`);
+                } else {
+                    console.log(`⏳ Match time has passed but status not yet updated by API. Skipping hype poster.`);
+                }
             }
-        }
 
-        // 2. Result Poster Logic (Ended)
-        else if (status === "FT" || status === "AET" || status === "PEN") {
-            const matchId = `result_${match.fixture.id}`;
-            if (!publishedIDs.includes(matchId)) {
-                console.log(`🏆 Match Finished! Fetching full details for goal scorers...`);
-                // Fetch the detailed fixture so we get the events (goal scorers)
-                const fullMatch = await getFixtureDetails(match.fixture.id);
-                const matchWithDetails = fullMatch || match; // fallback to basic data if call fails
-                console.log(`  Found ${(matchWithDetails.events || []).filter(e => e.type === "Goal").length} goal event(s)`);
-                await generateAndPublish(matchWithDetails, matchId);
-            } else {
-                console.log(`⏩ Result poster already published.`);
+            // 2. Result Poster Logic (Ended)
+            else if (status === "FT" || status === "AET" || status === "PEN") {
+                const matchId = `result_${match.fixture.id}`;
+                if (!publishedIDs.includes(matchId)) {
+                    console.log(`🏆 Match Finished! Fetching full details for goal scorers...`);
+                    // Fetch the detailed fixture so we get the events (goal scorers)
+                    const fullMatch = await getFixtureDetails(match.fixture.id);
+                    const matchWithDetails = fullMatch || match; // fallback to basic data if call fails
+                    console.log(`  Found ${(matchWithDetails.events || []).filter(e => e.type === "Goal").length} goal event(s)`);
+                    await generateAndPublish(matchWithDetails, matchId);
+                } else {
+                    console.log(`⏩ Result poster already published.`);
+                }
             }
-        }
 
-        else {
-            console.log(`🏃 Match is currently live or in an unhandled state. Skipping.`);
+            else {
+                console.log(`🏃 Match is currently live or in an unhandled state. Skipping.`);
+            }
         }
     }
 
